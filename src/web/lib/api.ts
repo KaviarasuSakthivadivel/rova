@@ -101,6 +101,8 @@ export const api = {
     request<{ ok: true }>(`/admin/discovery-candidates/${id}/reject`, { method: "POST" }),
 
   getCrawlRuns: (limit = 50) => request<{ runs: CrawlRun[] }>(`/admin/crawl-runs?limit=${limit}`),
+
+  triggerCrawl: () => request<{ ok: true; started: true }>("/admin/crawl", { method: "POST" }),
 };
 
 export { ApiError };

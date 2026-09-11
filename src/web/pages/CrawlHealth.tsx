@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/web/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { ApiError, api } from "@/web/lib/api";
 
 function statusBadgeClass(status: string): string {
   if (status === "success") return "bg-emerald-50 text-emerald-700";
@@ -14,12 +15,50 @@ function formatDuration(startedAt: string, finishedAt: string | null): string {
 }
 
 export function CrawlHealth() {
-  const runsQuery = useQuery({ queryKey: ["crawl-runs"], queryFn: () => api.getCrawlRuns(50) });
+  const queryClient = useQueryClient();
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+
+  const runsQuery = useQuery({
+    queryKey: ["crawl-runs"],
+    queryFn: () => api.getCrawlRuns(50),
+    // Poll while a crawl looks to be in flight (a "running" row present),
+    // so progress shows up without the user manually refreshing — stops
+    // on its own once every row has settled to success/failed.
+    refetchInterval: (query) => (query.state.data?.runs.some((r) => r.status === "running") ? 2000 : false),
+  });
+
+  const triggerMutation = useMutation({
+    mutationFn: () => api.triggerCrawl(),
+    onSuccess: () => {
+      setTriggerError(null);
+      queryClient.invalidateQueries({ queryKey: ["crawl-runs"] });
+    },
+    onError: (err) => {
+      setTriggerError(err instanceof ApiError ? err.message : "Failed to start crawl");
+    },
+  });
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">Crawl health</h1>
-      <p className="mt-1 text-sm text-slate-500">Most recent crawl runs across every tracked company.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Crawl health</h1>
+          <p className="mt-1 text-sm text-slate-500">Most recent crawl runs across every tracked company.</p>
+        </div>
+        <button
+          type="button"
+          disabled={triggerMutation.isPending}
+          onClick={() => triggerMutation.mutate()}
+          className="shrink-0 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+        >
+          {triggerMutation.isPending ? "Starting…" : "Run crawl now"}
+        </button>
+      </div>
+
+      {triggerError && <p className="mt-2 text-sm text-red-600">{triggerError}</p>}
+      {triggerMutation.isSuccess && !triggerError && (
+        <p className="mt-2 text-sm text-emerald-600">Crawl started — this list updates automatically.</p>
+      )}
 
       <div className="mt-6 overflow-x-auto">
         {runsQuery.isLoading && <p className="text-sm text-slate-500">Loading…</p>}

@@ -17,5 +17,55 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-shot: applies pending migrations, then exits. web/worker wait for
+  # it to succeed rather than each racing to migrate on startup.
+  migrate:
+    build: .
+    command: ["migrate"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://rova:rova@postgres:5432/rova
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: .
+    command: ["serve"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://rova:rova@postgres:5432/rova
+      # If EMBEDDINGS_PROVIDER=ollama: "localhost" inside a container is
+      # the container itself, not your host — this reaches a host-run
+      # `ollama serve` on both Docker Desktop and Linux (extra_hosts below).
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      PORT: "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://rova:rova@postgres:5432/rova
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   rova_postgres_data:
