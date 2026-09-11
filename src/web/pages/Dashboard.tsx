@@ -3,6 +3,12 @@ import { useState } from "react";
 import { JobCard } from "@/web/components/JobCard";
 import { ApiError, api } from "@/web/lib/api";
 
+const MODE_LABEL: Record<string, string> = {
+  keyword: "Keyword search",
+  similarity: "Semantic similarity",
+  ranked: "AI-ranked to your profile",
+};
+
 export function Dashboard() {
   const [q, setQ] = useState("");
   const [location, setLocation] = useState("");
@@ -28,58 +34,70 @@ export function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">Jobs</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        {submitted.semantic
-          ? "Ranked by similarity to your profile."
-          : "Deterministic keyword search across every job tracked from company career pages."}
-      </p>
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">01 — Browse</p>
+      <h1 className="mt-1 font-display text-4xl font-medium text-ink">Jobs</h1>
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           setSubmitted({ q, location, semantic });
         }}
-        className="mt-6 flex flex-wrap items-center gap-3"
+        className="mt-8 flex flex-wrap items-end gap-3 border-b-2 border-rule-strong pb-6"
       >
-        <input
-          type="text"
-          placeholder="Title or keyword (e.g. backend, Kafka)"
-          value={q}
-          disabled={semantic}
-          onChange={(e) => setQ(e.target.value)}
-          className="min-w-[240px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
-        />
-        <input
-          type="text"
-          placeholder="Location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="w-48 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-        />
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="min-w-[240px] flex-1">
+          <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Keyword</label>
+          <input
+            type="text"
+            placeholder="backend, Kafka, staff…"
+            value={q}
+            disabled={semantic}
+            onChange={(e) => setQ(e.target.value)}
+            className="mt-1 w-full border-2 border-ink bg-paper px-3 py-2 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none disabled:border-rule disabled:bg-paper-dim disabled:text-ink-faint"
+          />
+        </div>
+        <div className="w-48">
+          <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Location</label>
+          <input
+            type="text"
+            placeholder="Remote, SF…"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="mt-1 w-full border-2 border-ink bg-paper px-3 py-2 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none"
+          />
+        </div>
+        <label className="flex h-[42px] items-center gap-2 text-sm font-medium text-ink-soft">
           <input
             type="checkbox"
             checked={semantic}
             onChange={(e) => setSemantic(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 accent-rust"
           />
           Match to my profile
         </label>
         <button
           type="submit"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="h-[42px] bg-ink px-6 text-sm font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-rust"
         >
           Search
         </button>
       </form>
 
-      <div className="mt-6 space-y-3">
-        {jobsQuery.isLoading && <p className="text-sm text-slate-500">Loading…</p>}
-        {semanticError && <p className="text-sm text-red-600">{semanticError}</p>}
-        {jobsQuery.isError && !semanticError && <p className="text-sm text-red-600">Failed to load jobs.</p>}
+      <div className="mt-6 flex items-center justify-between">
+        {jobsQuery.data && (
+          <p className="font-mono text-xs uppercase tracking-wide text-ink-faint">
+            {MODE_LABEL[jobsQuery.data.mode] ?? jobsQuery.data.mode} · {jobsQuery.data.jobs.length} shown
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {jobsQuery.isLoading && <p className="text-sm text-ink-soft">Loading…</p>}
+        {semanticError && <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">{semanticError}</p>}
+        {jobsQuery.isError && !semanticError && (
+          <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">Failed to load jobs.</p>
+        )}
         {jobsQuery.data && jobsQuery.data.jobs.length === 0 && (
-          <p className="text-sm text-slate-500">No jobs match yet — try a broader search.</p>
+          <p className="text-sm text-ink-soft">No jobs match yet — try a broader search.</p>
         )}
         {jobsQuery.data?.jobs.map((result) => <JobCard key={result.job.id} result={result} searchKey={searchKey} />)}
       </div>

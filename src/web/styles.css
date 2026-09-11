@@ -1,1 +1,39 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
+
+@theme {
+  /* Editorial-data palette: warm paper instead of stark white/slate,
+     near-black ink instead of pure black, one confident accent used
+     deliberately rather than a rainbow of semantic blues/indigos. */
+  --color-paper: #faf7f0;
+  --color-paper-dim: #f2ede1;
+  --color-ink: #16130f;
+  --color-ink-soft: #4a443c;
+  --color-ink-faint: #8a8175;
+  --color-rule: #ded5c2;
+  --color-rule-strong: #16130f;
+
+  --color-rust: #c1441e;
+  --color-rust-dim: #a53a19;
+  --color-rust-tint: #fbe9e0;
+
+  --color-moss: #4b5f3f;
+  --color-moss-tint: #e9efe3;
+
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-sans: "Archivo", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Fraunces' italic is doing real design work here — keep it available as
+   a utility rather than reaching for a generic font-style everywhere. */
+.font-display-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+}

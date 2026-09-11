@@ -19,61 +19,59 @@ export function JobCard({ result, searchKey }: { result: JobResult; searchKey: u
   });
 
   return (
-    <article
-      className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm ${action === "dismissed" ? "opacity-50" : ""}`}
-    >
+    <article className={`border border-ink bg-paper p-5 ${action === "dismissed" ? "opacity-45" : ""}`}>
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="font-semibold text-slate-900">
-            <a href={job.jobUrl} target="_blank" rel="noreferrer" className="hover:underline">
+        <div className="min-w-0">
+          <h3 className="font-display text-xl font-medium text-ink">
+            <a href={job.jobUrl} target="_blank" rel="noreferrer" className="hover:text-rust">
               {job.title}
             </a>
           </h3>
-          <p className="mt-0.5 text-sm text-slate-600">
-            {companyName}
-            {job.location ? ` · ${job.location}` : ""}
+          <p className="mt-1 text-sm text-ink-soft">
+            <span className="font-semibold">{companyName}</span>
+            {job.location ? ` — ${job.location}` : ""}
             {job.department ? ` · ${job.department}` : ""}
           </p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
+
+        <div className="flex shrink-0 flex-col items-end gap-2">
           {typeof score === "number" && (
-            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-              {score}% fit
-            </span>
+            <div className="flex items-baseline gap-1 border border-rust bg-rust-tint px-2.5 py-1">
+              <span className="font-mono text-lg font-semibold leading-none text-rust-dim">{score}</span>
+              <span className="font-mono text-[10px] uppercase tracking-wide text-rust-dim/80">fit</span>
+            </div>
           )}
           {typeof score !== "number" && typeof similarity === "number" && (
-            <span
-              className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+            <div
+              className="border border-rule-strong px-2.5 py-1 font-mono text-xs text-ink-soft"
               title="Raw semantic similarity — a rough ordering signal, not a calibrated quality score. Configure Claude ranking for a real fit score."
             >
-              {Math.round(similarity * 100)}% similar
-            </span>
+              ~{Math.round(similarity * 100)}% similar
+            </div>
           )}
-          <span className="text-xs text-slate-400">{timeAgo(job.firstSeenAt)}</span>
+          <span className="font-mono text-[11px] text-ink-faint">{timeAgo(job.firstSeenAt)}</span>
         </div>
       </div>
 
       {reasons && reasons.length > 0 ? (
-        <ul className="mt-2 space-y-0.5">
+        <ul className="mt-3 space-y-1 border-l-2 border-rule pl-3">
           {reasons.map((reason) => (
-            <li key={reason} className="text-sm text-slate-500">
-              · {reason}
+            <li key={reason} className="text-sm text-ink-soft">
+              {reason}
             </li>
           ))}
         </ul>
       ) : (
-        job.description && <p className="mt-2 line-clamp-2 text-sm text-slate-500">{job.description}</p>
+        job.description && <p className="mt-3 line-clamp-2 text-sm text-ink-soft">{job.description}</p>
       )}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-4 flex gap-2">
         <button
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("saved")}
-          className={`rounded-md border px-3 py-1 text-xs font-medium ${
-            action === "saved"
-              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-              : "border-slate-300 text-slate-600 hover:bg-slate-50"
+          className={`border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+            action === "saved" ? "border-moss bg-moss-tint text-moss" : "border-ink text-ink hover:bg-ink hover:text-paper"
           }`}
         >
           {action === "saved" ? "Saved" : "Save"}
@@ -82,10 +80,8 @@ export function JobCard({ result, searchKey }: { result: JobResult; searchKey: u
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("dismissed")}
-          className={`rounded-md border px-3 py-1 text-xs font-medium ${
-            action === "dismissed"
-              ? "border-slate-400 bg-slate-100 text-slate-600"
-              : "border-slate-300 text-slate-600 hover:bg-slate-50"
+          className={`border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+            action === "dismissed" ? "border-ink-faint text-ink-faint" : "border-rule text-ink-soft hover:border-ink hover:text-ink"
           }`}
         >
           {action === "dismissed" ? "Dismissed" : "Dismiss"}

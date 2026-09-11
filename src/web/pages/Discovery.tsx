@@ -33,10 +33,11 @@ export function Discovery() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Company discovery</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Guess a company's ATS from its name — heuristic URL patterns first, Claude + web search as a fallback.
-        Nothing gets added to the tracked company list without approval here.
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">Admin</p>
+      <h1 className="mt-1 font-display text-4xl font-medium text-ink">Company discovery</h1>
+      <p className="mt-2 text-sm text-ink-soft">
+        Heuristic URL patterns first, Claude + web search as a fallback. Nothing joins the tracked company list
+        without approval here.
       </p>
 
       <form
@@ -49,9 +50,9 @@ export function Discovery() {
           if (names.length === 0) return;
           discoverMutation.mutate(names);
         }}
-        className="mt-6 space-y-3"
+        className="mt-8 space-y-3 border-b-2 border-rule-strong pb-6"
       >
-        <label htmlFor="names" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="names" className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
           Company names (one per line)
         </label>
         <textarea
@@ -60,52 +61,50 @@ export function Discovery() {
           value={namesInput}
           onChange={(e) => setNamesInput(e.target.value)}
           placeholder={"Anthropic\nExample Co"}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          className="w-full border-2 border-ink bg-paper px-3 py-2.5 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">{error}</p>}
         <button
           type="submit"
           disabled={discoverMutation.isPending}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          className="bg-ink px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-rust disabled:opacity-50"
         >
           {discoverMutation.isPending ? "Searching…" : "Discover"}
         </button>
       </form>
 
-      <h2 className="mt-8 text-lg font-semibold text-slate-900">Pending review</h2>
+      <p className="mt-8 font-mono text-xs uppercase tracking-wide text-ink-faint">
+        Pending review — {candidatesQuery.data?.candidates.length ?? 0}
+      </p>
       <div className="mt-3 space-y-3">
-        {candidatesQuery.isLoading && <p className="text-sm text-slate-500">Loading…</p>}
-        {candidatesQuery.data?.candidates.length === 0 && (
-          <p className="text-sm text-slate-500">Nothing pending.</p>
-        )}
+        {candidatesQuery.isLoading && <p className="text-sm text-ink-soft">Loading…</p>}
+        {candidatesQuery.data?.candidates.length === 0 && <p className="text-sm text-ink-soft">Nothing pending.</p>}
         {candidatesQuery.data?.candidates.map((candidate) => (
-          <article key={candidate.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold text-slate-900">{candidate.name}</p>
-                <p className="mt-0.5 text-sm text-slate-600">
-                  {candidate.guessedAts ? `${candidate.guessedAts} / ${candidate.guessedIdentifier}` : "no ATS guess"}
-                  {candidate.confidence ? ` · confidence ${candidate.confidence}` : ""}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  disabled={approveMutation.isPending || !candidate.guessedAts}
-                  onClick={() => approveMutation.mutate(candidate.id)}
-                  className="rounded-md border border-emerald-600 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  disabled={rejectMutation.isPending}
-                  onClick={() => rejectMutation.mutate(candidate.id)}
-                  className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Reject
-                </button>
-              </div>
+          <article key={candidate.id} className="flex items-start justify-between gap-4 border border-ink p-4">
+            <div>
+              <p className="font-display text-lg font-medium text-ink">{candidate.name}</p>
+              <p className="mt-0.5 font-mono text-xs text-ink-soft">
+                {candidate.guessedAts ? `${candidate.guessedAts} / ${candidate.guessedIdentifier}` : "no ATS guess"}
+                {candidate.confidence ? ` · confidence ${candidate.confidence}` : ""}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                disabled={approveMutation.isPending || !candidate.guessedAts}
+                onClick={() => approveMutation.mutate(candidate.id)}
+                className="border border-moss px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-moss transition-colors hover:bg-moss hover:text-paper disabled:opacity-40"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                disabled={rejectMutation.isPending}
+                onClick={() => rejectMutation.mutate(candidate.id)}
+                className="border border-rule-strong px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft transition-colors hover:border-rust hover:text-rust-dim disabled:opacity-40"
+              >
+                Reject
+              </button>
             </div>
           </article>
         ))}
