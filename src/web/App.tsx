@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "@/web/components/Layout";
 import { useAuth } from "@/web/lib/auth";
+import { CrawlHealth } from "@/web/pages/CrawlHealth";
 import { Dashboard } from "@/web/pages/Dashboard";
+import { Discovery } from "@/web/pages/Discovery";
 import { Login } from "@/web/pages/Login";
 import { Profile } from "@/web/pages/Profile";
 import { Signup } from "@/web/pages/Signup";
@@ -36,6 +38,22 @@ export function App() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/crawl-health"
+        element={
+          <ProtectedRoute>
+            <CrawlHealth />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/discovery"
+        element={
+          <ProtectedRoute>
+            <Discovery />
           </ProtectedRoute>
         }
       />

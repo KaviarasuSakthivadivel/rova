@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { env } from "@/config";
-import { embedText, embedTexts, EmbeddingsNotConfiguredError } from "@/embeddings/openai";
+import { EmbeddingsNotConfiguredError } from "@/embeddings/errors";
+import { embedText, embedTexts } from "@/embeddings/openai";
 
 const originalFetch = globalThis.fetch;
 const originalKey = env.OPENAI_API_KEY;

@@ -1,16 +1,13 @@
 import { env } from "@/config";
+import { EMBEDDING_DIMENSIONS } from "@/db/schema/jobs";
+import { EmbeddingsNotConfiguredError } from "./errors";
 
-// text-embedding-3-small — 1536 dimensions, matches EMBEDDING_DIMENSIONS
-// in src/db/schema/jobs.ts. Changing models means changing that constant
-// and re-embedding everything (dimensions aren't compatible across models).
+// text-embedding-3-small natively returns 1536 dims; `dimensions` truncates
+// server-side (with correct renormalization) to EMBEDDING_DIMENSIONS so
+// OpenAI and the local Ollama provider produce interchangeable vectors —
+// see src/db/schema/jobs.ts and src/embeddings/ollama.ts.
 const MODEL = "text-embedding-3-small";
 const BATCH_SIZE = 100;
-
-export class EmbeddingsNotConfiguredError extends Error {
-  constructor() {
-    super("OPENAI_API_KEY is not configured");
-  }
-}
 
 interface OpenAIEmbeddingResponse {
   data: { embedding: number[]; index: number }[];
@@ -21,7 +18,7 @@ interface OpenAIEmbeddingResponse {
  * the order of `texts` regardless of what order the API responds in. */
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
-  if (!env.OPENAI_API_KEY) throw new EmbeddingsNotConfiguredError();
+  if (!env.OPENAI_API_KEY) throw new EmbeddingsNotConfiguredError("OPENAI_API_KEY is not configured");
 
   const results: number[][] = [];
 
@@ -34,7 +31,7 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: MODEL, input: batch }),
+      body: JSON.stringify({ model: MODEL, input: batch, dimensions: EMBEDDING_DIMENSIONS }),
     });
 
     if (!response.ok) {

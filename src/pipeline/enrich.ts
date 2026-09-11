@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { jobs } from "@/db/schema";
-import { embedTexts, EmbeddingsNotConfiguredError } from "@/embeddings/openai";
+import { embedTexts, EmbeddingsNotConfiguredError } from "@/embeddings";
 
 const BATCH_SIZE = 100;
 
@@ -44,7 +44,7 @@ export async function runEnrichment(): Promise<EnrichResult> {
       vectors = await embedTexts(batch.map(embeddingInput));
     } catch (error) {
       if (error instanceof EmbeddingsNotConfiguredError) {
-        console.warn("[enrich] OPENAI_API_KEY not set — skipping embedding generation");
+        console.warn(`[enrich] embeddings not available (${error.message}) — skipping`);
         return { embedded, pending: pending.length - embedded, skipped: true, reason: error.message };
       }
       throw error;

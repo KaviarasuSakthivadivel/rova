@@ -1,14 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, mock } from "bun:test";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { env } from "@/config";
 import { db } from "@/db/client";
-import { candidateProfiles, companies, jobs, users } from "@/db/schema";
+import { candidateProfiles, companies, EMBEDDING_DIMENSIONS, jobs, users } from "@/db/schema";
 import { rankShortlistForUser } from "@/pipeline/rank";
 
 const originalFetch = globalThis.fetch;
 const originalKey = env.ANTHROPIC_API_KEY;
 const originalModel = env.ANTHROPIC_MODEL;
-const EMBEDDING = Array(1536).fill(0.1);
+const EMBEDDING = Array(EMBEDDING_DIMENSIONS).fill(0.1);
 
 function mockClaudeScoring(scoreFor: (jobTitle: string) => number) {
   let calls = 0;
@@ -90,8 +90,25 @@ describe("rankShortlistForUser", () => {
   describe("with an embedded profile and jobs", () => {
     let jobAId: string;
     let jobBId: string;
+    // rankShortlistForUser deliberately has no per-company scope (it ranks
+    // across the whole corpus for a user) — so with real embedded jobs now
+    // in the shared dev DB (see enrich.ts), this suite's exact-count
+    // assertions need the shortlist query to see *only* its own 2 jobs.
+    // Temporarily excluding every other OPEN job via status (not touching
+    // their embeddings/content at all) and restoring it afterward achieves
+    // that without changing rankShortlistForUser's production behavior.
+    let hiddenForeignJobIds: string[] = [];
 
     beforeAll(async () => {
+      const foreignOpenJobs = await db
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(and(eq(jobs.status, "OPEN"), isNotNull(jobs.embedding), ne(jobs.companyId, companyId)));
+      hiddenForeignJobIds = foreignOpenJobs.map((j) => j.id);
+      if (hiddenForeignJobIds.length > 0) {
+        await db.update(jobs).set({ status: "TEST_HIDDEN" }).where(inArray(jobs.id, hiddenForeignJobIds));
+      }
+
       await db.insert(candidateProfiles).values({ userId, profileText: "Backend engineer. Java, Kafka.", embedding: EMBEDDING });
 
       const [jobA] = await db
@@ -123,6 +140,12 @@ describe("rankShortlistForUser", () => {
         })
         .returning({ id: jobs.id });
       jobBId = jobB!.id;
+    });
+
+    afterAll(async () => {
+      if (hiddenForeignJobIds.length > 0) {
+        await db.update(jobs).set({ status: "OPEN" }).where(inArray(jobs.id, hiddenForeignJobIds));
+      }
     });
 
     it("returns a reason when ANTHROPIC_API_KEY isn't configured", async () => {

@@ -1,3 +1,4 @@
+import { fetchWithRetry } from "@/lib/retry";
 import type { JobSource, NormalizedJob } from "./base";
 
 /**
@@ -20,7 +21,7 @@ export class LeverSource implements JobSource {
 
     while (true) {
       const url = `${LeverSource.BASE_URL}/${this.site}?mode=json&skip=${skip}&limit=${LeverSource.PAGE_SIZE}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(this.timeoutMs) });
+      const response = await fetchWithRetry(url, { signal: AbortSignal.timeout(this.timeoutMs) });
       if (!response.ok) {
         throw new Error(`Lever fetch failed (${response.status}) for site "${this.site}"`);
       }

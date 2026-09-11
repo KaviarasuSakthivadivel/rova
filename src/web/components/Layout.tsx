@@ -23,6 +23,12 @@ export function Layout({ children }: { children: ReactNode }) {
               <NavLink to="/profile" className={navLinkClass}>
                 Profile
               </NavLink>
+              <NavLink to="/crawl-health" className={navLinkClass}>
+                Crawl health
+              </NavLink>
+              <NavLink to="/discovery" className={navLinkClass}>
+                Discovery
+              </NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-600">

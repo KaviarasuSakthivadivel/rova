@@ -6,7 +6,7 @@ import type { AuthEnv } from "@/auth/middleware";
 import { requireAuth } from "@/auth/middleware";
 import { db } from "@/db/client";
 import { candidateProfiles } from "@/db/schema";
-import { embedText, EmbeddingsNotConfiguredError } from "@/embeddings/openai";
+import { embedText, EmbeddingsNotConfiguredError } from "@/embeddings";
 import { extractResumeText, ResumeTooLargeError, UnsupportedResumeTypeError } from "@/resume/extract";
 
 const preferencesSchema = z.object({
@@ -32,7 +32,7 @@ async function tryEmbed(profileText: string, resumeText: string | undefined): Pr
     return await embedText(combined);
   } catch (error) {
     if (error instanceof EmbeddingsNotConfiguredError) {
-      console.warn("[profile] OPENAI_API_KEY not set — saving profile without an embedding");
+      console.warn(`[profile] embeddings not available (${error.message}) — saving profile without an embedding`);
     } else {
       console.error("[profile] embedding generation failed:", error);
     }

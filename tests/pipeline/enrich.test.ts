@@ -2,11 +2,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, mock } from "bun:
 import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { env } from "@/config";
 import { db } from "@/db/client";
-import { companies, jobs } from "@/db/schema";
+import { companies, EMBEDDING_DIMENSIONS, jobs } from "@/db/schema";
 import { runEnrichment } from "@/pipeline/enrich";
 
 const originalFetch = globalThis.fetch;
 const originalKey = env.OPENAI_API_KEY;
+const originalProvider = env.EMBEDDINGS_PROVIDER;
 
 describe("runEnrichment", () => {
   const marker = crypto.randomUUID().slice(0, 8);
@@ -28,9 +29,14 @@ describe("runEnrichment", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     env.OPENAI_API_KEY = originalKey;
+    env.EMBEDDINGS_PROVIDER = originalProvider;
   });
 
   it("embeds jobs with a null embedding and leaves already-embedded jobs alone", async () => {
+    // Pin the provider explicitly rather than relying on the ambient
+    // default — this test's mock is shaped for OpenAI's response format,
+    // and the dev .env may set EMBEDDINGS_PROVIDER=ollama (see src/embeddings/).
+    env.EMBEDDINGS_PROVIDER = "openai";
     env.OPENAI_API_KEY = "test-key";
 
     // runEnrichment() is (correctly) global — it has no per-company scope.
@@ -67,7 +73,7 @@ describe("runEnrichment", () => {
         jobUrl: "https://example.test/already",
         status: "OPEN",
         contentHash: `already-${marker}`,
-        embedding: Array(1536).fill(0.5),
+        embedding: Array(EMBEDDING_DIMENSIONS).fill(0.5),
       })
       .returning({ id: jobs.id });
 
@@ -76,7 +82,7 @@ describe("runEnrichment", () => {
       callCount += 1;
       const body = JSON.parse((init as RequestInit).body as string);
       const data = (body.input as string[]).map((_text: string, i: number) => ({
-        embedding: Array(1536).fill(0.1),
+        embedding: Array(EMBEDDING_DIMENSIONS).fill(0.1),
         index: i,
       }));
       return Response.json({ data });
@@ -92,10 +98,10 @@ describe("runEnrichment", () => {
     expect(callCount).toBeGreaterThanOrEqual(1);
 
     const [pendingRow] = await db.select({ embedding: jobs.embedding }).from(jobs).where(eq(jobs.id, pending!.id));
-    expect(pendingRow?.embedding).toEqual(Array(1536).fill(0.1));
+    expect(pendingRow?.embedding).toEqual(Array(EMBEDDING_DIMENSIONS).fill(0.1));
 
     const [alreadyRow] = await db.select({ embedding: jobs.embedding }).from(jobs).where(eq(jobs.id, already!.id));
-    expect(alreadyRow?.embedding).toEqual(Array(1536).fill(0.5)); // untouched
+    expect(alreadyRow?.embedding).toEqual(Array(EMBEDDING_DIMENSIONS).fill(0.5)); // untouched
 
     // Restore any foreign job this run swept in — see the comment above.
     if (foreignPendingBefore.length > 0) {
@@ -112,6 +118,7 @@ describe("runEnrichment", () => {
   });
 
   it("skips (without throwing) when OPENAI_API_KEY isn't configured", async () => {
+    env.EMBEDDINGS_PROVIDER = "openai"; // else the dev .env's Ollama default would mask this
     env.OPENAI_API_KEY = undefined;
 
     await db.insert(jobs).values({

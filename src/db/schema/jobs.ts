@@ -1,8 +1,10 @@
 import { index, integer, numeric, pgTable, text, timestamp, unique, vector } from "drizzle-orm/pg-core";
 import { companies } from "./companies";
 
-// OpenAI text-embedding-3-small — see PRD.md §4.
-export const EMBEDDING_DIMENSIONS = 1536;
+// 768 dims — chosen so OpenAI (text-embedding-3-small, truncated via its
+// `dimensions` API param) and a local Ollama model (nomic-embed-text,
+// native 768) are interchangeable behind one schema. See src/embeddings/.
+export const EMBEDDING_DIMENSIONS = 768;
 
 export const jobs = pgTable(
   "jobs",

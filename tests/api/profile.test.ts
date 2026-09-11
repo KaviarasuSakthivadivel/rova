@@ -1,12 +1,22 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { env } from "@/config";
 import { deleteTestUser, extractCookie, testApp, uniqueEmail } from "../helpers/testApp";
 
 describe("profile routes", () => {
   const app = testApp();
   const email = uniqueEmail("profile");
   let cookie: string;
+  const originalProvider = env.EMBEDDINGS_PROVIDER;
+  const originalOpenAiKey = env.OPENAI_API_KEY;
 
   beforeAll(async () => {
+    // Keep this hermetic regardless of the ambient .env — profile saves
+    // trigger an embed-on-save call, and the dev environment may default
+    // to a local Ollama provider, which would otherwise make these tests
+    // depend on a real local service being up.
+    env.EMBEDDINGS_PROVIDER = "openai";
+    env.OPENAI_API_KEY = undefined;
+
     const res = await app.request("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -15,7 +25,11 @@ describe("profile routes", () => {
     cookie = extractCookie(res);
   });
 
-  afterAll(() => deleteTestUser(email));
+  afterAll(async () => {
+    env.EMBEDDINGS_PROVIDER = originalProvider;
+    env.OPENAI_API_KEY = originalOpenAiKey;
+    await deleteTestUser(email);
+  });
 
   it("rejects unauthenticated access", async () => {
     const res = await app.request("/api/profile");

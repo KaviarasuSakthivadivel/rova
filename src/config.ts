@@ -6,8 +6,12 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-opus-5"),
   OPENAI_API_KEY: z.string().optional(),
+  EMBEDDINGS_PROVIDER: z.enum(["openai", "ollama"]).default("openai"),
+  OLLAMA_BASE_URL: z.string().default("http://localhost:11434"),
+  OLLAMA_EMBEDDING_MODEL: z.string().default("nomic-embed-text"),
   RESEND_API_KEY: z.string().optional(),
   DIGEST_FROM_EMAIL: z.string().optional(),
+  ADMIN_EMAIL: z.string().optional(),
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });

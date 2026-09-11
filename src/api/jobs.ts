@@ -45,7 +45,7 @@ export const jobsRoutes = new Hono<AuthEnv>()
         return c.json(
           {
             error:
-              "your profile doesn't have an embedding yet — this usually means OPENAI_API_KEY isn't configured on the server, or the last save failed to embed. Check the server logs, then try saving your profile again.",
+              "your profile doesn't have an embedding yet — this usually means no embeddings provider is configured on the server (OPENAI_API_KEY or a local Ollama), or the last save failed to embed. Check the server logs, then try saving your profile again.",
           },
           400,
         );

@@ -1,4 +1,14 @@
-import type { Job, JobAction, JobResult, Preferences, Profile, User } from "./types";
+import type {
+  CrawlRun,
+  DiscoveryCandidate,
+  DiscoveryRunResult,
+  Job,
+  JobAction,
+  JobResult,
+  Preferences,
+  Profile,
+  User,
+} from "./types";
 
 class ApiError extends Error {
   constructor(
@@ -74,6 +84,23 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ action }),
     }),
+
+  discoverCompanies: (names: string[]) =>
+    request<{ results: DiscoveryRunResult[] }>("/admin/discover", {
+      method: "POST",
+      body: JSON.stringify({ companies: names.map((name) => ({ name })) }),
+    }),
+
+  getDiscoveryCandidates: () =>
+    request<{ candidates: DiscoveryCandidate[] }>("/admin/discovery-candidates"),
+
+  approveDiscoveryCandidate: (id: string) =>
+    request<{ ok: true }>(`/admin/discovery-candidates/${id}/approve`, { method: "POST" }),
+
+  rejectDiscoveryCandidate: (id: string) =>
+    request<{ ok: true }>(`/admin/discovery-candidates/${id}/reject`, { method: "POST" }),
+
+  getCrawlRuns: (limit = 50) => request<{ runs: CrawlRun[] }>(`/admin/crawl-runs?limit=${limit}`),
 };
 
 export { ApiError };

@@ -46,3 +46,34 @@ export interface JobResult {
   action: JobAction | null;
   similarity?: number;
 }
+
+export interface DiscoveryCandidate {
+  id: string;
+  name: string;
+  domain: string | null;
+  guessedAts: string | null;
+  guessedIdentifier: string | null;
+  confidence: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface DiscoveryRunResult {
+  companyName: string;
+  matched: boolean;
+  source: "heuristic" | "llm" | "none";
+  reason?: string;
+}
+
+export interface CrawlRun {
+  id: string;
+  companyName: string;
+  status: string;
+  startedAt: string;
+  finishedAt: string | null;
+  jobsSeen: number | null;
+  jobsAdded: number | null;
+  jobsUpdated: number | null;
+  jobsClosed: number | null;
+  errorMessage: string | null;
+}

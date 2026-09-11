@@ -159,8 +159,8 @@ export function Profile() {
           {status === "saved" && <p className="text-sm text-emerald-600">Saved.</p>}
           {status === "saved-no-embedding" && (
             <p className="text-sm text-amber-600">
-              Saved — but "Match to my profile" search won't work yet. The server couldn't generate an embedding
-              (OPENAI_API_KEY is likely not configured).
+              Saved — but "Match to my profile" search won't work yet. The server couldn't generate an embedding (no
+              embeddings provider configured — OPENAI_API_KEY or a local Ollama).
             </p>
           )}
           {(status === "error" || uploadMutation.isError) && error && <p className="text-sm text-red-600">{error}</p>}

@@ -80,19 +80,34 @@ async function main() {
       break;
     }
 
+    case "discover": {
+      if (rest.length === 0) {
+        console.error('Usage: rova discover "Company One" "Company Two" ...');
+        process.exit(1);
+      }
+      const { runDiscovery } = await import("@/pipeline/discover");
+      const results = await runDiscovery(rest);
+      for (const r of results) {
+        console.log(`[discover] ${r.companyName}: matched=${r.matched} source=${r.source} ${r.reason ?? ""}`.trim());
+      }
+      process.exit(0);
+      break;
+    }
+
     default: {
       console.log(
         [
           "Usage: rova <command>",
           "",
-          "  serve    start the API + web server",
-          "  worker   start the scheduled crawl/enrich/rank/digest worker",
-          "  migrate  apply pending database migrations",
-          "  seed     seed companies from a CSV (default: scripts/companies.seed.csv)",
-          "  crawl    run a crawl across active companies once",
-          "  enrich   generate embeddings for jobs missing one",
-          "  rank     score every profile's shortlist and warm the ranking cache",
-          "  digest   send the digest (ranked when available, deterministic otherwise)",
+          "  serve     start the API + web server",
+          "  worker    start the scheduled crawl/enrich/rank/digest worker",
+          "  migrate   apply pending database migrations",
+          "  seed      seed companies from a CSV (default: scripts/companies.seed.csv)",
+          "  crawl     run a crawl across active companies once",
+          "  enrich    generate embeddings for jobs missing one",
+          "  rank      score every profile's shortlist and warm the ranking cache",
+          "  digest    send the digest (ranked when available, deterministic otherwise)",
+          '  discover  find ATS/careers-page candidates for company names (queues for review)',
         ].join("\n"),
       );
       process.exit(command ? 1 : 0);

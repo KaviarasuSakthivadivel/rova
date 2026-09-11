@@ -1,6 +1,9 @@
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, desc, eq, notInArray } from "drizzle-orm";
+import { env } from "@/config";
 import { db } from "@/db/client";
 import { companies, crawlRuns, jobs } from "@/db/schema";
+import { CrawlAlertEmail } from "@/email/templates/CrawlAlertEmail";
+import { sendEmail } from "@/email/send";
 import { AshbySource } from "@/sources/ashby";
 import type { JobSource } from "@/sources/base";
 import { GreenhouseSource } from "@/sources/greenhouse";
@@ -8,6 +11,50 @@ import { LeverSource } from "@/sources/lever";
 import { upsertJob } from "./ingest";
 
 type Company = typeof companies.$inferSelect;
+
+const CONSECUTIVE_FAILURE_ALERT_THRESHOLD = 3;
+
+/**
+ * Alerts once when a company crosses the failure threshold, not on every
+ * failed run after — checks whether the run just before the last N was
+ * itself a failure, and skips re-alerting if so. Never throws: a broken
+ * alert path must not affect crawl accounting for other companies.
+ */
+export async function checkConsecutiveFailuresAndAlert(company: Company) {
+  try {
+    const recent = await db
+      .select({ status: crawlRuns.status })
+      .from(crawlRuns)
+      .where(eq(crawlRuns.companyId, company.id))
+      .orderBy(desc(crawlRuns.startedAt))
+      .limit(CONSECUTIVE_FAILURE_ALERT_THRESHOLD + 1);
+
+    const last = recent.slice(0, CONSECUTIVE_FAILURE_ALERT_THRESHOLD);
+    if (last.length < CONSECUTIVE_FAILURE_ALERT_THRESHOLD || last.some((r) => r.status !== "failed")) return;
+
+    const runBeforeThat = recent[CONSECUTIVE_FAILURE_ALERT_THRESHOLD];
+    if (runBeforeThat?.status === "failed") return; // already alerted at the previous threshold crossing
+
+    const subject = `Rova: ${company.name} has failed ${CONSECUTIVE_FAILURE_ALERT_THRESHOLD} crawls in a row`;
+    if (!env.ADMIN_EMAIL) {
+      console.warn(`[crawl] ${subject} (ADMIN_EMAIL not set — not sending an alert)`);
+      return;
+    }
+
+    await sendEmail({
+      to: env.ADMIN_EMAIL,
+      subject,
+      react: CrawlAlertEmail({
+        companyName: company.name,
+        ats: company.ats,
+        atsIdentifier: company.atsIdentifier,
+        consecutiveFailures: CONSECUTIVE_FAILURE_ALERT_THRESHOLD,
+      }),
+    });
+  } catch (error) {
+    console.error(`[crawl] failure-alert check errored for ${company.name} (non-fatal):`, error);
+  }
+}
 
 function sourceFor(company: Company): JobSource {
   switch (company.ats) {
@@ -84,6 +131,7 @@ async function crawlCompany(company: Company) {
       .set({ status: "failed", finishedAt: new Date(), errorMessage: message })
       .where(eq(crawlRuns.id, run.id));
     console.error(`[crawl] ${company.name} failed:`, message);
+    await checkConsecutiveFailuresAndAlert(company);
   }
 }
 

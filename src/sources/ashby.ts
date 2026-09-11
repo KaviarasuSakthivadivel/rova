@@ -1,3 +1,4 @@
+import { fetchWithRetry } from "@/lib/retry";
 import type { JobSource, NormalizedJob } from "./base";
 
 /**
@@ -16,7 +17,7 @@ export class AshbySource implements JobSource {
   async fetchJobs(): Promise<NormalizedJob[]> {
     const url = `${AshbySource.BASE_URL}/${this.jobBoardName}?includeCompensation=true`;
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(this.timeoutMs) });
+    const response = await fetchWithRetry(url, { signal: AbortSignal.timeout(this.timeoutMs) });
     if (!response.ok) {
       throw new Error(`Ashby fetch failed (${response.status}) for job board "${this.jobBoardName}"`);
     }

@@ -3,6 +3,7 @@ import { logger } from "hono/logger";
 import indexHtml from "@/web/index.html";
 import type { AuthEnv } from "@/auth/middleware";
 import { attachSession } from "@/auth/middleware";
+import { adminRoutes } from "@/api/admin";
 import { authRoutes } from "@/api/auth";
 import { jobsRoutes } from "@/api/jobs";
 import { profileRoutes } from "@/api/profile";
@@ -18,6 +19,7 @@ export function createApp() {
   app.route("/api/auth", authRoutes);
   app.route("/api/profile", profileRoutes);
   app.route("/api/jobs", jobsRoutes);
+  app.route("/api/admin", adminRoutes);
 
   return app;
 }
