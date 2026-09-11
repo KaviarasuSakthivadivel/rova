@@ -48,3 +48,17 @@ export async function requireAuth(c: Context<AuthEnv>, next: Next) {
   }
   return next();
 }
+
+/** Mount after attachSession (requireAuth is redundant with this — a
+ * missing user fails the role check too) on any route restricted to
+ * admins: crawl triggers, discovery approve/reject, etc. */
+export async function requireAdmin(c: Context<AuthEnv>, next: Next) {
+  const user = c.get("user");
+  if (!user) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  if (user.role !== "admin") {
+    return c.json({ error: "admin access required" }, 403);
+  }
+  return next();
+}

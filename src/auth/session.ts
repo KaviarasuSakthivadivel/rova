@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { sessions, users } from "@/db/schema";
+import type { UserRole } from "@/db/schema/users";
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const RENEW_THRESHOLD_MS = 15 * 24 * 60 * 60 * 1000; // renew if < 15 days left
@@ -26,6 +27,7 @@ export async function createSession(userId: string): Promise<{ token: string; ex
 export interface AuthedUser {
   id: string;
   email: string;
+  role: UserRole;
 }
 
 export async function validateSession(
@@ -34,7 +36,7 @@ export async function validateSession(
   const id = hashToken(token);
 
   const [row] = await db
-    .select({ userId: users.id, email: users.email, expiresAt: sessions.expiresAt })
+    .select({ userId: users.id, email: users.email, role: users.role, expiresAt: sessions.expiresAt })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(eq(sessions.id, id))
@@ -53,7 +55,7 @@ export async function validateSession(
     await db.update(sessions).set({ expiresAt: renewedExpiresAt }).where(eq(sessions.id, id));
   }
 
-  return { user: { id: row.userId, email: row.email }, renewedExpiresAt };
+  return { user: { id: row.userId, email: row.email, role: row.role }, renewedExpiresAt };
 }
 
 export async function invalidateSession(token: string): Promise<void> {

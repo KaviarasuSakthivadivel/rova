@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "@/auth/middleware";
-import { requireAuth } from "@/auth/middleware";
+import { requireAdmin } from "@/auth/middleware";
 import { db } from "@/db/client";
 import { companies, companyDiscoveryCandidates } from "@/db/schema";
 import { runDiscovery } from "@/pipeline/discover";
@@ -35,11 +35,8 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-// No admin-role system exists yet in this app — every authenticated user
-// can trigger discovery and approve/reject candidates. That's a known gap
-// (see PRD.md), not addressed here; fine for a single-operator MVP.
 export const discoveryRoutes = new Hono<AuthEnv>()
-  .use(requireAuth)
+  .use(requireAdmin)
 
   .post("/discover", zValidator("json", discoverSchema), async (c) => {
     const { companies: names } = c.req.valid("json");

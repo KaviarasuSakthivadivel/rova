@@ -25,7 +25,10 @@ export const authRoutes = new Hono<AuthEnv>()
     }
 
     const passwordHash = await hashPassword(password);
-    const [user] = await db.insert(users).values({ email, passwordHash }).returning({ id: users.id, email: users.email });
+    const [user] = await db
+      .insert(users)
+      .values({ email, passwordHash })
+      .returning({ id: users.id, email: users.email, role: users.role });
     if (!user) {
       return c.json({ error: "failed to create account" }, 500);
     }
@@ -33,14 +36,14 @@ export const authRoutes = new Hono<AuthEnv>()
     const { token, expiresAt } = await createSession(user.id);
     setSessionCookie(c, token, expiresAt);
 
-    return c.json({ user: { id: user.id, email: user.email } }, 201);
+    return c.json({ user }, 201);
   })
 
   .post("/login", zValidator("json", credentialsSchema), async (c) => {
     const { email, password } = c.req.valid("json");
 
     const [user] = await db
-      .select({ id: users.id, email: users.email, passwordHash: users.passwordHash })
+      .select({ id: users.id, email: users.email, role: users.role, passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
@@ -52,7 +55,7 @@ export const authRoutes = new Hono<AuthEnv>()
     const { token, expiresAt } = await createSession(user.id);
     setSessionCookie(c, token, expiresAt);
 
-    return c.json({ user: { id: user.id, email: user.email } });
+    return c.json({ user: { id: user.id, email: user.email, role: user.role } });
   })
 
   .post("/logout", async (c) => {

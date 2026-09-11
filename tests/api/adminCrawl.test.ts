@@ -16,7 +16,7 @@ mock.module("@/pipeline/crawl", () => ({
 
 describe("POST /admin/crawl", () => {
   it("requires auth, then starts a crawl and rejects a concurrent trigger", async () => {
-    const { deleteTestUser, extractCookie, testApp, uniqueEmail } = await import("../helpers/testApp");
+    const { deleteTestUser, extractCookie, makeAdmin, testApp, uniqueEmail } = await import("../helpers/testApp");
     const app = testApp();
     const email = uniqueEmail("admin-crawl");
 
@@ -29,6 +29,7 @@ describe("POST /admin/crawl", () => {
       body: JSON.stringify({ email, password: "correct-horse-battery" }),
     });
     const cookie = extractCookie(signupRes);
+    await makeAdmin(email);
 
     const first = await app.request("/api/admin/crawl", { method: "POST", headers: { Cookie: cookie } });
     expect(first.status).toBe(200);

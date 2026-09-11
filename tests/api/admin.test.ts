@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { companies, crawlRuns } from "@/db/schema";
-import { deleteTestUser, extractCookie, testApp, uniqueEmail } from "../helpers/testApp";
+import { deleteTestUser, extractCookie, makeAdmin, testApp, uniqueEmail } from "../helpers/testApp";
 
 describe("admin routes", () => {
   const app = testApp();
@@ -18,6 +18,7 @@ describe("admin routes", () => {
       body: JSON.stringify({ email, password: "correct-horse-battery" }),
     });
     cookie = extractCookie(signupRes);
+    await makeAdmin(email);
 
     const [company] = await db
       .insert(companies)
@@ -60,6 +61,21 @@ describe("admin routes", () => {
   it("rejects unauthenticated access", async () => {
     const res = await app.request("/api/admin/crawl-runs");
     expect(res.status).toBe(401);
+  });
+
+  it("rejects a non-admin user", async () => {
+    const nonAdminEmail = uniqueEmail("non-admin");
+    const signupRes = await app.request("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: nonAdminEmail, password: "correct-horse-battery" }),
+    });
+    const nonAdminCookie = extractCookie(signupRes);
+
+    const res = await app.request("/api/admin/crawl-runs", { headers: { Cookie: nonAdminCookie } });
+    expect(res.status).toBe(403);
+
+    await deleteTestUser(nonAdminEmail);
   });
 
   it("lists recent crawl runs, most recent first, with the company name joined", async () => {

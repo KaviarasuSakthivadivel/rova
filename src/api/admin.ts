@@ -3,14 +3,10 @@ import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "@/auth/middleware";
-import { requireAuth } from "@/auth/middleware";
+import { requireAdmin } from "@/auth/middleware";
 import { db } from "@/db/client";
 import { companies, crawlRuns } from "@/db/schema";
 import { runCrawl } from "@/pipeline/crawl";
-
-// No admin-role system exists yet — every authenticated user can see crawl
-// health today. Fine for a single-operator MVP; revisit before any
-// multi-tenant/public signup (see PRD.md open questions).
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -23,7 +19,7 @@ const listQuerySchema = z.object({
 let crawlInProgress = false;
 
 export const adminRoutes = new Hono<AuthEnv>()
-  .use(requireAuth)
+  .use(requireAdmin)
 
   .post("/crawl", async (c) => {
     if (crawlInProgress) {

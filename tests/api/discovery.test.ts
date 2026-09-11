@@ -8,12 +8,10 @@ import { Hono } from "hono";
 import { env } from "@/config";
 import { db } from "@/db/client";
 import { companies, companyDiscoveryCandidates, users } from "@/db/schema";
-import { deleteTestUser, extractCookie, uniqueEmail } from "../helpers/testApp";
+import { deleteTestUser, extractCookie, makeAdmin, uniqueEmail } from "../helpers/testApp";
 
-// discoveryRoutes isn't mounted in src/server.ts yet (left to the
-// coordinator to integrate) — build a minimal app here with the same
-// middleware wiring createApp() uses, so this tests the real route module
-// without depending on that integration.
+// Standalone app (not the shared testApp() helper) so this file only pulls
+// in what discoveryRoutes actually needs.
 function testApp() {
   const app = new Hono<AuthEnv>();
   app.use("*", attachSession);
@@ -38,6 +36,7 @@ describe("discovery admin routes", () => {
       body: JSON.stringify({ email, password: "correct-horse-battery" }),
     });
     cookie = extractCookie(res);
+    await makeAdmin(email);
   });
 
   afterAll(async () => {
@@ -57,13 +56,32 @@ describe("discovery admin routes", () => {
     expect((await app.request("/api/admin/discovery-candidates/x/approve", { method: "POST" })).status).toBe(401);
   });
 
+  it("rejects a non-admin user", async () => {
+    const nonAdminEmail = uniqueEmail("discovery-non-admin");
+    const signupRes = await app.request("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: nonAdminEmail, password: "correct-horse-battery" }),
+    });
+    const nonAdminCookie = extractCookie(signupRes);
+
+    const res = await app.request("/api/admin/discovery-candidates", { headers: { Cookie: nonAdminCookie } });
+    expect(res.status).toBe(403);
+
+    await deleteTestUser(nonAdminEmail);
+  });
+
   it("discovers via heuristics, lists the pending candidate, then approves it into companies", async () => {
     const companyName = `Discovery Test Co ${marker}`;
     const expectedSlug = `discoverytestco${marker}`.toLowerCase();
 
     globalThis.fetch = mock(async (url: string | URL | Request) => {
       const href = url.toString();
-      if (href.includes(`boards.greenhouse.io/${expectedSlug}`)) return new Response(null, { status: 200 });
+      // Heuristic verification hits the real API endpoint, not the hosted
+      // page — see src/discovery/heuristics.ts.
+      if (href.includes(`boards-api.greenhouse.io/v1/boards/${expectedSlug}/jobs`)) {
+        return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
+      }
       return new Response(null, { status: 404 });
     }) as unknown as typeof fetch;
 

@@ -9,13 +9,28 @@ import { Login } from "@/web/pages/Login";
 import { Profile } from "@/web/pages/Profile";
 import { Signup } from "@/web/pages/Signup";
 
+function LoadingScreen() {
+  return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading…</div>;
+}
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading…</div>;
-  }
+  if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+
+  return <Layout>{children}</Layout>;
+}
+
+/** Admin-only routes — server-side enforcement is what actually matters
+ * (requireAdmin on every admin/discovery route), this just keeps a
+ * non-admin from landing on a page that will only 403 on every request. */
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin") return <Navigate to="/" replace />;
 
   return <Layout>{children}</Layout>;
 }
@@ -42,21 +57,22 @@ export function App() {
         }
       />
       <Route
-        path="/crawl-health"
+        path="/admin/crawl-health"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <CrawlHealth />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route
-        path="/discovery"
+        path="/admin/discovery"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <Discovery />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
+      <Route path="/admin" element={<Navigate to="/admin/crawl-health" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

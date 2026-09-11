@@ -80,6 +80,31 @@ async function main() {
       break;
     }
 
+    case "make-admin": {
+      const email = rest[0];
+      if (!email) {
+        console.error("Usage: rova make-admin <email>");
+        process.exit(1);
+      }
+      const { db } = await import("@/db/client");
+      const { users } = await import("@/db/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const [user] = await db
+        .update(users)
+        .set({ role: "admin" })
+        .where(eq(users.email, email))
+        .returning({ id: users.id, email: users.email });
+
+      if (!user) {
+        console.error(`No user found with email "${email}"`);
+        process.exit(1);
+      }
+      console.log(`[make-admin] ${user.email} is now an admin`);
+      process.exit(0);
+      break;
+    }
+
     case "discover": {
       if (rest.length === 0) {
         console.error('Usage: rova discover "Company One" "Company Two" ...');
@@ -107,7 +132,8 @@ async function main() {
           "  enrich    generate embeddings for jobs missing one",
           "  rank      score every profile's shortlist and warm the ranking cache",
           "  digest    send the digest (ranked when available, deterministic otherwise)",
-          '  discover  find ATS/careers-page candidates for company names (queues for review)',
+          "  discover    find ATS/careers-page candidates for company names (queues for review)",
+          "  make-admin  grant a user admin access (required for /crawl-health, /discovery)",
         ].join("\n"),
       );
       process.exit(command ? 1 : 0);

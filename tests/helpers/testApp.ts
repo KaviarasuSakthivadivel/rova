@@ -20,3 +20,9 @@ export function extractCookie(response: Response): string {
 export async function deleteTestUser(email: string): Promise<void> {
   await db.delete(users).where(eq(users.email, email));
 }
+
+/** Promotes an already-signed-up test user to admin — mirrors the real
+ * bootstrap path (`rova make-admin <email>`), there's no self-serve way. */
+export async function makeAdmin(email: string): Promise<void> {
+  await db.update(users).set({ role: "admin" }).where(eq(users.email, email));
+}
