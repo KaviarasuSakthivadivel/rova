@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/web/lib/api";
 
-const fieldLabel = "text-sm font-medium text-on-surface-variant";
+const fieldLabel = "text-xs font-medium text-fg-muted";
 const fieldInput =
-  "mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
+  "mt-1 w-full rounded-md border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
 
 export function Profile() {
   const queryClient = useQueryClient();
@@ -65,14 +65,12 @@ export function Profile() {
   });
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-3xl font-normal text-on-surface">Your profile</h1>
-      <p className="mt-1 text-sm text-on-surface-variant">
-        Feeds every rank and match on the Jobs page — the more grounded, the better the "why" behind each result.
-      </p>
+    <div className="max-w-xl">
+      <h1 className="text-2xl font-bold text-fg">Your profile</h1>
+      <p className="mt-1 text-sm text-fg-muted">Feeds every rank and match on the Jobs page.</p>
 
       {profileQuery.isLoading ? (
-        <p className="mt-8 text-sm text-on-surface-variant">Loading…</p>
+        <p className="mt-6 text-sm text-fg-muted">Loading…</p>
       ) : (
         <form
           onSubmit={(e) => {
@@ -80,9 +78,9 @@ export function Profile() {
             setStatus("idle");
             saveMutation.mutate();
           }}
-          className="mt-6 space-y-5"
+          className="mt-5 space-y-4 rounded-lg border border-border bg-bg p-5"
         >
-          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+          <div>
             <label htmlFor="profileText" className={fieldLabel}>
               About you
             </label>
@@ -97,31 +95,29 @@ export function Profile() {
             />
           </div>
 
-          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+          <div className="border-t border-border pt-4">
             <label htmlFor="resume" className={fieldLabel}>
               Resume
             </label>
-            <div className="mt-2">
-              <input
-                id="resume"
-                type="file"
-                accept=".pdf,.txt,application/pdf,text/plain"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setResumeFileName(file.name);
-                  uploadMutation.mutate(file);
-                }}
-                className="block w-full text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border-0 file:bg-secondary-container file:px-4 file:py-2 file:text-xs file:font-medium file:text-on-secondary-container"
-              />
-            </div>
-            <p className="mt-1.5 text-xs text-on-surface-variant/70">PDF or .txt, up to 5MB.</p>
+            <input
+              id="resume"
+              type="file"
+              accept=".pdf,.txt,application/pdf,text/plain"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setResumeFileName(file.name);
+                uploadMutation.mutate(file);
+              }}
+              className="mt-1.5 block w-full text-sm text-fg-muted file:mr-3 file:rounded-md file:border file:border-border-strong file:bg-bg file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-fg hover:file:bg-bg-muted"
+            />
+            <p className="mt-1 text-xs text-fg-subtle">PDF or .txt, up to 5MB.</p>
 
-            {uploadMutation.isPending && <p className="mt-3 text-sm text-on-surface-variant">Reading {resumeFileName}…</p>}
+            {uploadMutation.isPending && <p className="mt-2 text-sm text-fg-muted">Reading {resumeFileName}…</p>}
 
             {(resumeText || resumeFileName) && !uploadMutation.isPending && (
-              <div className="mt-3">
-                <label htmlFor="resumeText" className="text-xs font-medium text-on-surface-variant/80">
+              <div className="mt-2">
+                <label htmlFor="resumeText" className="text-xs font-medium text-fg-subtle">
                   Extracted text (edit if anything looks off)
                 </label>
                 <textarea
@@ -129,13 +125,13 @@ export function Profile() {
                   rows={5}
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 font-mono text-xs text-on-surface-variant focus:border-primary focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-border bg-bg-subtle px-2.5 py-1.5 font-mono text-xs text-fg-muted focus:border-accent focus:outline-none"
                 />
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+          <div className="border-t border-border pt-4">
             <label htmlFor="locations" className={fieldLabel}>
               Preferred locations
             </label>
@@ -147,31 +143,29 @@ export function Profile() {
               placeholder="San Francisco, New York, Remote"
               className={fieldInput}
             />
-            <p className="mt-1.5 text-xs text-on-surface-variant/70">Comma-separated.</p>
+            <p className="mt-1 text-xs text-fg-subtle">Comma-separated.</p>
 
-            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-on-surface-variant">
-              <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-4 w-4 accent-primary" />
+            <label className="mt-3 flex items-center gap-1.5 text-sm text-fg-muted">
+              <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-3.5 w-3.5 accent-accent" />
               Open to fully remote roles
             </label>
           </div>
 
-          {status === "saved" && (
-            <p className="rounded-xl bg-tertiary-container px-4 py-2.5 text-sm text-on-tertiary-container">Saved.</p>
-          )}
+          {status === "saved" && <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success">Saved.</p>}
           {status === "saved-no-embedding" && (
-            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">
+            <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger">
               Saved — but "Match to my profile" search won't work yet. The server couldn't generate an embedding (no
               embeddings provider configured — OPENAI_API_KEY or a local Ollama).
             </p>
           )}
           {(status === "error" || uploadMutation.isError) && error && (
-            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">{error}</p>
+            <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={saveMutation.isPending || uploadMutation.isPending}
-            className="state-layer rounded-full bg-primary px-6 py-3 text-sm font-medium text-on-primary shadow-sm disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {saveMutation.isPending ? "Saving…" : "Save profile"}
           </button>

@@ -5,14 +5,14 @@ import type { JobResult } from "@/web/lib/types";
 function timeAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return "Today";
-  if (days === 1) return "1 day ago";
-  return `${days} days ago`;
+  if (days === 1) return "1d ago";
+  return `${days}d ago`;
 }
 
-function scoreTone(score: number): string {
-  if (score >= 80) return "bg-tertiary-container text-on-tertiary-container";
-  if (score >= 60) return "bg-secondary-container text-on-secondary-container";
-  return "bg-surface-container-high text-on-surface-variant";
+function scoreClass(score: number): string {
+  if (score >= 80) return "bg-success-subtle text-success";
+  if (score >= 60) return "bg-accent-subtle text-accent";
+  return "bg-bg-muted text-fg-muted";
 }
 
 export function JobCard({ result, searchKey }: { result: JobResult; searchKey: unknown[] }) {
@@ -25,69 +25,60 @@ export function JobCard({ result, searchKey }: { result: JobResult; searchKey: u
   });
 
   return (
-    <article
-      className={`rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm transition-shadow hover:shadow-md ${
-        action === "dismissed" ? "opacity-50" : ""
-      }`}
-    >
+    <article className={`rounded-lg border border-border bg-bg p-4 ${action === "dismissed" ? "opacity-50" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="text-base font-medium text-on-surface">
-            <a href={job.jobUrl} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
+          <h3 className="text-base font-semibold text-fg">
+            <a href={job.jobUrl} target="_blank" rel="noreferrer" className="hover:text-accent">
               {job.title}
             </a>
           </h3>
-          <p className="mt-0.5 text-sm text-on-surface-variant">
-            <span className="font-medium text-on-surface">{companyName}</span>
+          <p className="mt-0.5 text-sm text-fg-muted">
+            {companyName}
             {job.location ? ` · ${job.location}` : ""}
             {job.department ? ` · ${job.department}` : ""}
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           {typeof score === "number" && (
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full font-mono text-sm font-semibold ${scoreTone(score)}`}>
+            <span className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium ${scoreClass(score)}`}>
               {score}
-            </div>
+            </span>
           )}
           {typeof score !== "number" && typeof similarity === "number" && (
-            <div
-              className="rounded-full bg-surface-container-high px-2.5 py-1 font-mono text-xs text-on-surface-variant"
+            <span
+              className="rounded bg-bg-muted px-1.5 py-0.5 font-mono text-xs text-fg-muted"
               title="Raw semantic similarity — a rough ordering signal, not a calibrated score. Configure Claude ranking for a real fit score."
             >
               ~{Math.round(similarity * 100)}%
-            </div>
+            </span>
           )}
-          <span className="text-xs text-on-surface-variant">{timeAgo(job.firstSeenAt)}</span>
+          <span className="text-xs text-fg-subtle">{timeAgo(job.firstSeenAt)}</span>
         </div>
       </div>
 
-      {/* AI fit reasons (ranked mode) take priority; otherwise the
-          one-sentence summary; raw description is the last resort for
-          jobs the summarizer hasn't reached yet. */}
       {reasons && reasons.length > 0 ? (
-        <ul className="mt-3 space-y-1 border-l-2 border-primary-container pl-3">
+        <ul className="mt-2 space-y-0.5">
           {reasons.map((reason) => (
-            <li key={reason} className="text-sm text-on-surface-variant">
-              {reason}
+            <li key={reason} className="text-sm text-fg-muted">
+              · {reason}
             </li>
           ))}
         </ul>
       ) : job.summary ? (
-        <p className="mt-3 text-sm text-on-surface-variant">{job.summary}</p>
+        <p className="mt-2 text-sm text-fg-muted">{job.summary}</p>
       ) : (
-        job.description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant/70">{job.description}</p>
+        job.description && <p className="mt-2 line-clamp-2 text-sm text-fg-subtle">{job.description}</p>
       )}
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-3 flex gap-1.5">
         <button
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("saved")}
-          className={`state-layer rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-            action === "saved"
-              ? "bg-tertiary-container text-on-tertiary-container"
-              : "border border-outline text-on-surface-variant"
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            action === "saved" ? "bg-success-subtle text-success" : "border border-border-strong text-fg-muted hover:bg-bg-muted"
           }`}
         >
           {action === "saved" ? "Saved" : "Save"}
@@ -96,10 +87,8 @@ export function JobCard({ result, searchKey }: { result: JobResult; searchKey: u
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("dismissed")}
-          className={`state-layer rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-            action === "dismissed"
-              ? "bg-surface-container-high text-on-surface-variant"
-              : "border border-outline text-on-surface-variant"
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            action === "dismissed" ? "bg-bg-muted text-fg-subtle" : "border border-border-strong text-fg-muted hover:bg-bg-muted"
           }`}
         >
           {action === "dismissed" ? "Dismissed" : "Dismiss"}

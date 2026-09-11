@@ -4,8 +4,8 @@ import { useAuth } from "@/web/lib/auth";
 
 function NavIcon({ path }: { path: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0" aria-hidden="true">
-      <path d={path} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px] shrink-0" aria-hidden="true">
+      <path d={path} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -17,16 +17,14 @@ const ICONS = {
   discovery: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm9.5 16.5-4.8-4.8",
 };
 
-// M3 Navigation Drawer item: a full-width pill row, filled with the
-// primary-container tone when active rather than an underline/border.
 function NavItem({ to, end, icon, children }: { to: string; end?: boolean; icon: string; children: ReactNode }) {
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
-        `state-layer flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
-          isActive ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant"
+        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          isActive ? "bg-sidebar-active text-white" : "text-white/65 hover:bg-sidebar-hover hover:text-white"
         }`
       }
     >
@@ -40,13 +38,11 @@ export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-surface">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col border-r border-outline-variant bg-surface-container-low sm:flex">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
-            R
-          </div>
-          <span className="text-lg font-medium text-on-surface">Rova</span>
+    <div className="flex min-h-screen bg-bg">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-sidebar sm:flex">
+        <div className="flex items-center gap-2.5 px-5 py-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">R</div>
+          <span className="text-base font-bold text-white">Rova</span>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 px-3">
@@ -59,9 +55,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
           {user?.role === "admin" && (
             <>
-              <p className="mb-1 mt-6 px-4 text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Admin
-              </p>
+              <p className="mb-1 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/35">Admin</p>
               <NavItem to="/admin/crawl-health" icon={ICONS.crawl}>
                 Crawl health
               </NavItem>
@@ -72,42 +66,28 @@ export function Layout({ children }: { children: ReactNode }) {
           )}
         </nav>
 
-        <div className="border-t border-outline-variant px-4 py-4">
-          <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-container text-sm font-semibold text-on-secondary-container">
-              {user?.email?.[0]?.toUpperCase()}
-            </div>
-            <span className="min-w-0 truncate text-xs text-on-surface-variant">{user?.email}</span>
+        <div className="border-t border-white/10 px-4 py-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate font-mono text-xs text-white/50">{user?.email}</span>
+            <button type="button" onClick={() => logout()} className="shrink-0 text-xs font-semibold text-white/60 hover:text-white">
+              Log out
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="state-layer mt-2 w-full rounded-full border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant"
-          >
-            Log out
-          </button>
         </div>
       </aside>
 
-      {/* Compact top app bar — the drawer collapses below sm */}
-      <div className="fixed inset-x-0 top-0 z-10 flex items-center justify-between bg-surface-container-low px-4 py-3 shadow-sm sm:hidden">
+      <div className="fixed inset-x-0 top-0 z-10 flex items-center justify-between bg-sidebar px-4 py-3 sm:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
-            R
-          </div>
-          <span className="text-base font-medium text-on-surface">Rova</span>
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-xs font-bold text-white">R</div>
+          <span className="text-sm font-bold text-white">Rova</span>
         </div>
-        <button
-          type="button"
-          onClick={() => logout()}
-          className="rounded-full border border-outline px-3 py-1 text-xs font-medium text-on-surface-variant"
-        >
+        <button type="button" onClick={() => logout()} className="text-xs font-semibold text-white/70">
           Log out
         </button>
       </div>
 
-      <div className="flex w-full flex-col pt-16 sm:ml-72 sm:pt-0">
-        <nav className="flex gap-2 overflow-x-auto bg-surface-container-low px-3 py-2 sm:hidden">
+      <div className="flex w-full flex-col pt-14 sm:ml-64 sm:pt-0">
+        <nav className="flex gap-1 overflow-x-auto bg-sidebar px-3 py-2 sm:hidden">
           <NavItem to="/" end icon={ICONS.jobs}>
             Jobs
           </NavItem>
@@ -125,7 +105,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </>
           )}
         </nav>
-        <main className="mx-auto w-full max-w-5xl px-6 py-8 sm:px-10 sm:py-10">{children}</main>
+        <main className="mx-auto w-full max-w-4xl px-6 py-8 sm:px-10">{children}</main>
       </div>
     </div>
   );

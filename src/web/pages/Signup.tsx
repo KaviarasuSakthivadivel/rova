@@ -26,61 +26,58 @@ export function Signup() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-container-low px-4">
-      <div className="w-full max-w-sm rounded-3xl bg-surface-container-lowest p-8 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-bold text-on-primary">
-            R
-          </div>
-          <span className="text-xl font-medium text-on-surface">Rova</span>
+    <div className="flex min-h-screen items-center justify-center bg-bg-subtle px-4">
+      <div className="w-full max-w-[360px]">
+        <div className="mb-6 flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-fg text-[11px] font-bold text-bg">R</div>
+          <span className="text-sm font-semibold text-fg">Rova</span>
         </div>
 
-        <h1 className="mt-6 text-2xl font-medium text-on-surface">Create your account</h1>
-        <p className="mt-1 text-sm text-on-surface-variant">Free to start — set up your profile in a minute.</p>
+        <div className="rounded-lg border border-border bg-bg p-6">
+          <h1 className="text-xl font-bold text-fg">Create your account</h1>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="email" className="text-sm font-medium text-on-surface-variant">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="text-sm font-medium text-on-surface-variant">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <p className="mt-1.5 text-xs text-on-surface-variant">At least 8 characters.</p>
-          </div>
-          {error && (
-            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">{error}</p>
-          )}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="state-layer w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-on-primary shadow-sm disabled:opacity-50"
-          >
-            {isSubmitting ? "Creating account…" : "Sign up"}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-sm text-on-surface-variant">
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
+            <div>
+              <label htmlFor="email" className="text-xs font-medium text-fg-muted">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="text-xs font-medium text-fg-muted">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <p className="mt-1 text-xs text-fg-subtle">At least 8 characters.</p>
+            </div>
+            {error && <p className="rounded-md bg-danger-subtle px-2.5 py-2 text-xs text-danger">{error}</p>}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {isSubmitting ? "Creating account…" : "Sign up"}
+            </button>
+          </form>
+        </div>
+        <p className="mt-4 text-center text-sm text-fg-muted">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline">
+          <Link to="/login" className="font-medium text-accent hover:underline">
             Log in
           </Link>
         </p>

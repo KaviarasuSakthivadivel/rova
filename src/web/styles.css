@@ -1,73 +1,43 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
 @theme {
-  /* Rova's own design system, built with Material Design 3's methodology:
-     role-based color tokens (not ad-hoc colors), a tonal surface hierarchy,
-     a defined type scale, and one consistent shape/elevation language
-     applied to every component. The palette itself is ours — a deep
-     sapphire blue, not Material's stock purple. */
-  --color-primary: #2451b0;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #dbe6ff;
-  --color-on-primary-container: #001a41;
+  --color-bg: #ffffff;
+  --color-bg-subtle: #faf9fc;
+  --color-bg-muted: #f2effa;
 
-  --color-secondary: #565f71;
-  --color-on-secondary: #ffffff;
-  --color-secondary-container: #dae2f9;
-  --color-on-secondary-container: #131c2b;
+  --color-fg: #1c1730;
+  --color-fg-muted: #5b5470;
+  --color-fg-subtle: #9891ab;
 
-  --color-tertiary: #146c5f;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #cdf2e7;
-  --color-on-tertiary-container: #00201b;
+  --color-border: #e7e2f3;
+  --color-border-strong: #d3cbe9;
 
-  --color-error: #ba1a1a;
-  --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #410002;
+  /* Vivid violet as the one confident brand color — used everywhere,
+     not just on buttons: the sidebar, active states, and score chips. */
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-subtle: #f3ecfe;
 
-  --color-surface: #fdfbff;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f6f5fc;
-  --color-surface-container: #f0eef7;
-  --color-surface-container-high: #eaeaf1;
-  --color-surface-container-highest: #e4e4eb;
+  --color-sidebar: #241b3f;
+  --color-sidebar-hover: #33285a;
+  --color-sidebar-active: #4c2f8f;
 
-  --color-on-surface: #1a1b20;
-  --color-on-surface-variant: #44464f;
-  --color-outline: #75777f;
-  --color-outline-variant: #c5c6d0;
+  --color-success: #0d9488;
+  --color-success-subtle: #ecfdf5;
+  --color-warning: #d97706;
+  --color-warning-subtle: #fffbeb;
+  --color-danger: #e11d48;
+  --color-danger-subtle: #fff1f3;
 
-  --font-sans: "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "Roboto Mono", ui-monospace, monospace;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 body {
-  background-color: var(--color-surface);
-  color: var(--color-on-surface);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-fg);
   font-family: var(--font-sans);
-}
-
-/* M3-style state layer: hovering/pressing a component tints it with its
-   own ink color at low opacity, instead of swapping to a flat hover color. */
-.state-layer {
-  position: relative;
-  isolation: isolate;
-}
-.state-layer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  pointer-events: none;
-}
-.state-layer:hover::after {
-  opacity: 0.08;
-}
-.state-layer:active::after {
-  opacity: 0.12;
+  font-size: 15.5px;
+  line-height: 1.55;
 }
