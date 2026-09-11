@@ -10,7 +10,7 @@ function timeAgo(iso: string): string {
 }
 
 export function JobCard({ result, searchKey }: { result: JobResult; searchKey: unknown[] }) {
-  const { job, companyName, action, similarity } = result;
+  const { job, companyName, action, similarity, score, reasons } = result;
   const queryClient = useQueryClient();
 
   const actMutation = useMutation({
@@ -36,16 +36,34 @@ export function JobCard({ result, searchKey }: { result: JobResult; searchKey: u
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          {typeof similarity === "number" && (
+          {typeof score === "number" && (
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-              {Math.round(similarity * 100)}% match
+              {score}% fit
+            </span>
+          )}
+          {typeof score !== "number" && typeof similarity === "number" && (
+            <span
+              className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+              title="Raw semantic similarity — a rough ordering signal, not a calibrated quality score. Configure Claude ranking for a real fit score."
+            >
+              {Math.round(similarity * 100)}% similar
             </span>
           )}
           <span className="text-xs text-slate-400">{timeAgo(job.firstSeenAt)}</span>
         </div>
       </div>
 
-      {job.description && <p className="mt-2 line-clamp-2 text-sm text-slate-500">{job.description}</p>}
+      {reasons && reasons.length > 0 ? (
+        <ul className="mt-2 space-y-0.5">
+          {reasons.map((reason) => (
+            <li key={reason} className="text-sm text-slate-500">
+              · {reason}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        job.description && <p className="mt-2 line-clamp-2 text-sm text-slate-500">{job.description}</p>
+      )}
 
       <div className="mt-3 flex gap-2">
         <button

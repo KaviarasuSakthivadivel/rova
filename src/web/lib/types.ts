@@ -47,7 +47,13 @@ export interface JobResult {
   job: Job;
   companyName: string;
   action: JobAction | null;
+  /** Raw cosine similarity (0-1) — the "similarity" search mode only.
+   * Fast, but poorly calibrated as a quality signal on its own; prefer
+   * `score`/`reasons` (the "ranked" mode) when available. */
   similarity?: number;
+  /** LLM-scored fit (0-100) with grounded reasons — the "ranked" mode. */
+  score?: number;
+  reasons?: string[];
 }
 
 export interface DiscoveryCandidate {

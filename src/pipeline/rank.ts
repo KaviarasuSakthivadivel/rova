@@ -1,11 +1,12 @@
-import { and, cosineDistance, eq, gt, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { and, cosineDistance, eq, gt, ilike, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, digestDeliveries, jobRankings, jobs, userJobActions } from "@/db/schema";
 import { estimateCostUsd, type JobScore, rankJob, RankingNotConfiguredError } from "@/ranking/claude";
 
 const SHORTLIST_SIZE = 100; // SQL filter -> vector top-N, never wider than this
-const MAX_LLM_CALLS_PER_RUN = 30; // hard cap regardless of shortlist size — cost guardrail, PRD.md §5/§10
-const TOP_N_RESULTS = 10;
+const MAX_LLM_CALLS_PER_DIGEST_RUN = 30; // cost guardrail, PRD.md §5/§10
+const MAX_LLM_CALLS_PER_SEARCH = 20; // smaller cap — this one blocks an HTTP response
+const TOP_N_DIGEST_RESULTS = 10;
 const DEDUP_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface RankedJob {
@@ -18,87 +19,60 @@ export interface RankedJob {
   score: JobScore;
 }
 
-export interface RankShortlistResult {
-  ranked: RankedJob[];
-  scoredCount: number; // LLM calls actually made this run (0 if everything was cached)
+interface ScoreCandidate {
+  jobId: string;
+  title: string;
+  companyName: string;
+  location: string | null;
+  jobUrl: string;
+  description: string | null;
+  contentHash: string;
+}
+
+interface ScoreCandidatesResult {
+  scored: RankedJob[]; // unsorted, unsliced — cached hits + newly-scored
+  scoredCount: number;
   cachedCount: number;
   costUsd: number | null;
-  reason?: string; // set when ranked is [] because of a config/data gap, not "no good matches"
+  notConfigured?: string; // set if RankingNotConfiguredError was hit (message)
 }
 
 /**
- * SQL filter -> vector top-N -> LLM scores only that shortlist (never the
- * full corpus) -> cached by (profile, job, content_hash) so an unchanged
- * job already scored for this profile is never re-scored -> hard cap on
- * LLM calls this run regardless of shortlist size. See PRD.md §5.
+ * The shared core behind both digest ranking and live "match to my
+ * profile" search: cache by (profile, job, content_hash) so an unchanged
+ * job already scored for this profile is never re-scored, hard cap on LLM
+ * calls per call regardless of candidate-list size. Callers build the
+ * candidate list differently (digest excludes dismissed/recently-sent
+ * jobs; search doesn't), everything after that is identical.
  */
-export async function rankShortlistForUser(userId: string): Promise<RankShortlistResult> {
-  const empty = (reason: string): RankShortlistResult => ({
-    ranked: [],
-    scoredCount: 0,
-    cachedCount: 0,
-    costUsd: null,
-    reason,
-  });
+async function scoreCandidatesWithCache(
+  profileId: string,
+  profileText: string,
+  candidates: ScoreCandidate[],
+  maxLlmCalls: number,
+): Promise<ScoreCandidatesResult> {
+  if (candidates.length === 0) {
+    return { scored: [], scoredCount: 0, cachedCount: 0, costUsd: 0 };
+  }
 
-  const [profile] = await db
-    .select()
-    .from(candidateProfiles)
-    .where(eq(candidateProfiles.userId, userId))
-    .limit(1);
-  if (!profile) return empty("no profile");
-  if (!profile.embedding) return empty("profile has no embedding yet");
-
-  const dismissedRows = await db
-    .select({ jobId: userJobActions.jobId })
-    .from(userJobActions)
-    .where(and(eq(userJobActions.userId, userId), eq(userJobActions.action, "dismissed")));
-  const recentDeliveries = await db
-    .select({ jobIds: digestDeliveries.jobIds })
-    .from(digestDeliveries)
-    .where(and(eq(digestDeliveries.userId, userId), gt(digestDeliveries.sentAt, new Date(Date.now() - DEDUP_WINDOW_MS))));
-  const excluded = new Set<string>([...dismissedRows.map((r) => r.jobId), ...recentDeliveries.flatMap((d) => d.jobIds)]);
-
-  const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
-  if (excluded.size > 0) conditions.push(notInArray(jobs.id, [...excluded]));
-
-  const distance = cosineDistance(jobs.embedding, profile.embedding);
-  const shortlist = await db
-    .select({
-      jobId: jobs.id,
-      title: jobs.title,
-      companyName: companies.name,
-      location: jobs.location,
-      jobUrl: jobs.jobUrl,
-      description: jobs.description,
-      contentHash: jobs.contentHash,
-    })
-    .from(jobs)
-    .innerJoin(companies, eq(jobs.companyId, companies.id))
-    .where(and(...conditions))
-    .orderBy(distance)
-    .limit(SHORTLIST_SIZE);
-
-  if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
-
-  const jobIds = shortlist.map((j) => j.jobId);
+  const jobIds = candidates.map((c) => c.jobId);
   const cachedRows = await db
     .select()
     .from(jobRankings)
-    .where(and(eq(jobRankings.profileId, profile.id), inArray(jobRankings.jobId, jobIds)));
+    .where(and(eq(jobRankings.profileId, profileId), inArray(jobRankings.jobId, jobIds)));
   const cacheByJobId = new Map(cachedRows.map((r) => [r.jobId, r]));
 
-  const results: RankedJob[] = [];
+  const scored: RankedJob[] = [];
   let scoredCount = 0;
   let cachedCount = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
-  for (const job of shortlist) {
+  for (const job of candidates) {
     const cached = cacheByJobId.get(job.jobId);
     if (cached && cached.jobContentHash === job.contentHash) {
       cachedCount += 1;
-      results.push({
+      scored.push({
         jobId: job.jobId,
         title: job.title,
         companyName: job.companyName,
@@ -115,19 +89,21 @@ export async function rankShortlistForUser(userId: string): Promise<RankShortlis
       continue;
     }
 
-    if (scoredCount >= MAX_LLM_CALLS_PER_RUN) continue; // cap hit — leave the rest unscored this run
+    if (scoredCount >= maxLlmCalls) continue; // cap hit — leave the rest unscored this call
 
     let rankResult: Awaited<ReturnType<typeof rankJob>>;
     try {
       rankResult = await rankJob({
-        profileText: profile.profileText,
+        profileText,
         jobTitle: job.title,
         companyName: job.companyName,
         location: job.location,
         description: job.description,
       });
     } catch (error) {
-      if (error instanceof RankingNotConfiguredError) return empty(error.message);
+      if (error instanceof RankingNotConfiguredError) {
+        return { scored, scoredCount, cachedCount, costUsd: null, notConfigured: error.message };
+      }
       console.error(`[rank] scoring failed for job ${job.jobId}:`, error);
       continue;
     }
@@ -135,12 +111,12 @@ export async function rankShortlistForUser(userId: string): Promise<RankShortlis
     scoredCount += 1;
     totalInputTokens += rankResult.inputTokens;
     totalOutputTokens += rankResult.outputTokens;
-    if (!rankResult.score) continue; // refusal / unparseable — skip, don't crash the run
+    if (!rankResult.score) continue; // refusal / unparseable — skip, don't crash the caller
 
     await db
       .insert(jobRankings)
       .values({
-        profileId: profile.id,
+        profileId,
         jobId: job.jobId,
         jobContentHash: job.contentHash,
         score: rankResult.score.score,
@@ -161,7 +137,7 @@ export async function rankShortlistForUser(userId: string): Promise<RankShortlis
         },
       });
 
-    results.push({
+    scored.push({
       jobId: job.jobId,
       title: job.title,
       companyName: job.companyName,
@@ -172,12 +148,116 @@ export async function rankShortlistForUser(userId: string): Promise<RankShortlis
     });
   }
 
-  results.sort((a, b) => b.score.score - a.score.score);
-
   return {
-    ranked: results.slice(0, TOP_N_RESULTS),
+    scored,
     scoredCount,
     cachedCount,
     costUsd: scoredCount > 0 ? estimateCostUsd(totalInputTokens, totalOutputTokens) : 0,
   };
+}
+
+async function vectorShortlist(
+  profileEmbedding: number[],
+  extraExclusions: Set<string>,
+  location?: string,
+): Promise<ScoreCandidate[]> {
+  const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
+  if (extraExclusions.size > 0) conditions.push(notInArray(jobs.id, [...extraExclusions]));
+  if (location) conditions.push(ilike(jobs.location, `%${location}%`));
+
+  const distance = cosineDistance(jobs.embedding, profileEmbedding);
+  return db
+    .select({
+      jobId: jobs.id,
+      title: jobs.title,
+      companyName: companies.name,
+      location: jobs.location,
+      jobUrl: jobs.jobUrl,
+      description: jobs.description,
+      contentHash: jobs.contentHash,
+    })
+    .from(jobs)
+    .innerJoin(companies, eq(jobs.companyId, companies.id))
+    .where(and(...conditions))
+    .orderBy(distance)
+    .limit(SHORTLIST_SIZE);
+}
+
+export interface RankShortlistResult {
+  ranked: RankedJob[];
+  scoredCount: number; // LLM calls actually made this run (0 if everything was cached)
+  cachedCount: number;
+  costUsd: number | null;
+  reason?: string; // set when ranked is [] because of a config/data gap, not "no good matches"
+}
+
+/**
+ * SQL filter -> vector top-N -> LLM scores only that shortlist (never the
+ * full corpus). Used by the digest: excludes jobs already dismissed or
+ * sent in a recent digest, since resurfacing those isn't useful there.
+ * See PRD.md §5.
+ */
+export async function rankShortlistForUser(userId: string): Promise<RankShortlistResult> {
+  const empty = (reason: string): RankShortlistResult => ({
+    ranked: [],
+    scoredCount: 0,
+    cachedCount: 0,
+    costUsd: null,
+    reason,
+  });
+
+  const [profile] = await db.select().from(candidateProfiles).where(eq(candidateProfiles.userId, userId)).limit(1);
+  if (!profile) return empty("no profile");
+  if (!profile.embedding) return empty("profile has no embedding yet");
+
+  const dismissedRows = await db
+    .select({ jobId: userJobActions.jobId })
+    .from(userJobActions)
+    .where(and(eq(userJobActions.userId, userId), eq(userJobActions.action, "dismissed")));
+  const recentDeliveries = await db
+    .select({ jobIds: digestDeliveries.jobIds })
+    .from(digestDeliveries)
+    .where(and(eq(digestDeliveries.userId, userId), gt(digestDeliveries.sentAt, new Date(Date.now() - DEDUP_WINDOW_MS))));
+  const excluded = new Set<string>([...dismissedRows.map((r) => r.jobId), ...recentDeliveries.flatMap((d) => d.jobIds)]);
+
+  const shortlist = await vectorShortlist(profile.embedding, excluded);
+  if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
+
+  const result = await scoreCandidatesWithCache(profile.id, profile.profileText, shortlist, MAX_LLM_CALLS_PER_DIGEST_RUN);
+  if (result.notConfigured) return empty(result.notConfigured);
+
+  const ranked = [...result.scored].sort((a, b) => b.score.score - a.score.score).slice(0, TOP_N_DIGEST_RESULTS);
+  return { ranked, scoredCount: result.scoredCount, cachedCount: result.cachedCount, costUsd: result.costUsd };
+}
+
+export interface RankSearchResult {
+  ranked: RankedJob[];
+  scoredCount: number;
+  cachedCount: number;
+  reason?: string;
+}
+
+/**
+ * Same vector-shortlist + cached-LLM-scoring core as the digest, but for
+ * the live "match to my profile" search: no dismissed/recently-sent
+ * exclusions (browsing is a different intent than "what's new today"),
+ * smaller LLM-call cap (this blocks an HTTP response, not a background
+ * job), and returns everything scored rather than trimming to a top-N —
+ * the caller applies its own limit/offset.
+ */
+export async function rankSearchResultsForUser(userId: string, location?: string): Promise<RankSearchResult> {
+  const empty = (reason: string): RankSearchResult => ({ ranked: [], scoredCount: 0, cachedCount: 0, reason });
+
+  const [profile] = await db.select().from(candidateProfiles).where(eq(candidateProfiles.userId, userId)).limit(1);
+  if (!profile) return empty("no profile");
+  if (!profile.embedding) return empty("profile has no embedding yet");
+
+  const shortlist = await vectorShortlist(profile.embedding, new Set(), location);
+  if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
+
+  const result = await scoreCandidatesWithCache(profile.id, profile.profileText, shortlist, MAX_LLM_CALLS_PER_SEARCH);
+  if (result.notConfigured) return empty(result.notConfigured);
+
+  const ranked = [...result.scored].sort((a, b) => b.score.score - a.score.score);
+  return { ranked, scoredCount: result.scoredCount, cachedCount: result.cachedCount };
 }

@@ -1,11 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, cosineDistance, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "@/auth/middleware";
 import { requireAuth } from "@/auth/middleware";
+import { env } from "@/config";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, jobs, userJobActions } from "@/db/schema";
+import { rankSearchResultsForUser } from "@/pipeline/rank";
 
 const searchQuerySchema = z.object({
   q: z.string().trim().optional(),
@@ -52,9 +54,54 @@ export const jobsRoutes = new Hono<AuthEnv>()
       }
       const profileEmbedding = profileRow.embedding;
 
-      // Only enriched jobs (embedding IS NOT NULL) participate — see
-      // src/pipeline/enrich.ts. Ranking against profile similarity
-      // replaces the keyword filter; `location` still narrows results.
+      // With Claude configured: rank the vector shortlist for a real,
+      // calibrated fit score + "why" reasons (same pipeline the digest
+      // uses — cached per (profile, job, content_hash), so repeat
+      // searches are instant and free). Raw cosine similarity between two
+      // "professional experience" embeddings compresses into a narrow,
+      // poorly-discriminating band (observed: ~57-74% across a real
+      // corpus, with an unrelated finance role scoring almost as high as
+      // the best engineering match) — it's fine as an internal shortlist
+      // filter, but showing it directly as an absolute "% match" is
+      // misleading. Without a key, fall back to it anyway (better than
+      // nothing) but label it honestly as similarity, not a match score.
+      if (env.ANTHROPIC_API_KEY) {
+        const result = await rankSearchResultsForUser(user.id, location);
+        const page = result.ranked.slice(offset, offset + limit);
+        const pageJobIds = page.map((r) => r.jobId);
+
+        // RankedJob only carries the fields the LLM/email need — fetch
+        // full rows (department, workplaceType, firstSeenAt, ...) for the
+        // web UI, then merge in the score/reasons by id.
+        const fullRows = pageJobIds.length
+          ? await db
+              .select({ job: jobs, action: userJobActions.action })
+              .from(jobs)
+              .leftJoin(userJobActions, and(eq(userJobActions.jobId, jobs.id), eq(userJobActions.userId, user.id)))
+              .where(inArray(jobs.id, pageJobIds))
+          : [];
+        const fullRowById = new Map(fullRows.map((r) => [r.job.id, r]));
+
+        return c.json({
+          jobs: page
+            .map((r) => {
+              const full = fullRowById.get(r.jobId);
+              if (!full) return null;
+              return {
+                job: full.job,
+                companyName: r.companyName,
+                action: full.action,
+                score: r.score.score,
+                reasons: r.score.reasons,
+              };
+            })
+            .filter((r) => r !== null),
+          limit,
+          offset,
+          mode: "ranked",
+        });
+      }
+
       const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
       if (location) conditions.push(ilike(jobs.location, `%${location}%`));
 
@@ -75,7 +122,7 @@ export const jobsRoutes = new Hono<AuthEnv>()
         .limit(limit)
         .offset(offset);
 
-      return c.json({ jobs: results, limit, offset, mode: "semantic" });
+      return c.json({ jobs: results, limit, offset, mode: "similarity" });
     }
 
     // Baseline deterministic search — SQL ILIKE only.

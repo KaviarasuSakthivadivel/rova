@@ -2,8 +2,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, mock } from "bun:
 import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { env } from "@/config";
 import { db } from "@/db/client";
-import { candidateProfiles, companies, EMBEDDING_DIMENSIONS, jobs, users } from "@/db/schema";
-import { rankShortlistForUser } from "@/pipeline/rank";
+import { candidateProfiles, companies, EMBEDDING_DIMENSIONS, jobs, userJobActions, users } from "@/db/schema";
+import { rankSearchResultsForUser, rankShortlistForUser } from "@/pipeline/rank";
 
 const originalFetch = globalThis.fetch;
 const originalKey = env.ANTHROPIC_API_KEY;
@@ -195,6 +195,21 @@ describe("rankShortlistForUser", () => {
       expect(result.scoredCount).toBe(1);
       expect(result.cachedCount).toBe(1);
       expect(result.ranked.find((r) => r.jobId === jobAId)?.score.score).toBe(10);
+    });
+
+    it("rankSearchResultsForUser (browse/search) still includes a job the digest path excludes (dismissed)", async () => {
+      await db.insert(userJobActions).values({ userId, jobId: jobBId, action: "dismissed" });
+
+      env.ANTHROPIC_API_KEY = "test-key";
+      mockClaudeScoring(() => 50);
+
+      const digestResult = await rankShortlistForUser(userId);
+      expect(digestResult.ranked.map((r) => r.jobId)).not.toContain(jobBId);
+
+      const searchResult = await rankSearchResultsForUser(userId);
+      expect(searchResult.ranked.map((r) => r.jobId)).toContain(jobBId);
+
+      await db.delete(userJobActions).where(and(eq(userJobActions.userId, userId), eq(userJobActions.jobId, jobBId)));
     });
   });
 });

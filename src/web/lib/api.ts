@@ -72,7 +72,7 @@ export const api = {
     if (params.semantic) query.set("semantic", "true");
     if (params.limit) query.set("limit", String(params.limit));
     if (params.offset) query.set("offset", String(params.offset));
-    return request<{ jobs: JobResult[]; limit: number; offset: number; mode: "keyword" | "semantic" }>(
+    return request<{ jobs: JobResult[]; limit: number; offset: number; mode: "keyword" | "similarity" | "ranked" }>(
       `/jobs?${query.toString()}`,
     );
   },
