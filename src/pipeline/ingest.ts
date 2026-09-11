@@ -89,9 +89,9 @@ export async function upsertJob(
       contentHash: hash,
       status: "OPEN",
       updatedAt: now,
-      // Content changed, so any existing embedding is now stale — null it
-      // out so the enrichment stage picks this job up again.
-      ...(changed ? { embedding: null } : {}),
+      // Content changed, so any existing embedding/summary are now stale —
+      // null them out so enrichment/summarization pick this job up again.
+      ...(changed ? { embedding: null, summary: null } : {}),
     })
     .where(eq(jobs.id, existing.id));
 

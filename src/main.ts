@@ -52,6 +52,13 @@ async function main() {
       break;
     }
 
+    case "summarize": {
+      const { runSummarization } = await import("@/pipeline/summarize");
+      await runSummarization();
+      process.exit(0);
+      break;
+    }
+
     case "rank": {
       // Manual/debug entrypoint: scores every profile's shortlist and
       // warms the job_rankings cache without sending anything — the
@@ -130,6 +137,7 @@ async function main() {
           "  seed      seed companies from a CSV (default: scripts/companies.seed.csv)",
           "  crawl     run a crawl across active companies once",
           "  enrich    generate embeddings for jobs missing one",
+          "  summarize generate a one-sentence summary for jobs missing one",
           "  rank      score every profile's shortlist and warm the ranking cache",
           "  digest    send the digest (ranked when available, deterministic otherwise)",
           "  discover    find ATS/careers-page candidates for company names (queues for review)",

@@ -2,6 +2,7 @@ import { Cron } from "croner";
 import { runCrawl } from "@/pipeline/crawl";
 import { runDigest } from "@/pipeline/digest";
 import { runEnrichment } from "@/pipeline/enrich";
+import { runSummarization } from "@/pipeline/summarize";
 
 /**
  * Long-running process: croner schedules each pipeline stage
@@ -26,10 +27,15 @@ export function startWorker() {
     await runEnrichment();
   });
 
+  new Cron("30 3 * * *", { name: "summarize" }, async () => {
+    console.log("[worker] running scheduled summarization");
+    await runSummarization();
+  });
+
   new Cron("0 7 * * *", { name: "digest" }, async () => {
     console.log("[worker] running scheduled digest");
     await runDigest();
   });
 
-  console.log("rova worker running (crawl: 02:00, enrich: 03:00, digest: 07:00 daily)");
+  console.log("rova worker running (crawl: 02:00, enrich: 03:00, summarize: 03:30, digest: 07:00 daily)");
 }

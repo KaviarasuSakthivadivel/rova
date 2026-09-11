@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/web/lib/api";
 
-const fieldLabel = "text-xs font-semibold uppercase tracking-wide text-ink-soft";
+const fieldLabel = "text-sm font-medium text-on-surface-variant";
 const fieldInput =
-  "mt-1.5 w-full border-2 border-ink bg-paper px-3 py-2.5 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none";
+  "mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 export function Profile() {
   const queryClient = useQueryClient();
@@ -66,14 +66,13 @@ export function Profile() {
 
   return (
     <div className="max-w-2xl">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">02 — Your profile</p>
-      <h1 className="mt-1 font-display text-4xl font-medium text-ink">What you bring</h1>
-      <p className="mt-2 text-sm text-ink-soft">
+      <h1 className="text-3xl font-normal text-on-surface">Your profile</h1>
+      <p className="mt-1 text-sm text-on-surface-variant">
         Feeds every rank and match on the Jobs page — the more grounded, the better the "why" behind each result.
       </p>
 
       {profileQuery.isLoading ? (
-        <p className="mt-8 text-sm text-ink-soft">Loading…</p>
+        <p className="mt-8 text-sm text-on-surface-variant">Loading…</p>
       ) : (
         <form
           onSubmit={(e) => {
@@ -81,9 +80,9 @@ export function Profile() {
             setStatus("idle");
             saveMutation.mutate();
           }}
-          className="mt-8 space-y-6"
+          className="mt-6 space-y-5"
         >
-          <div>
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
             <label htmlFor="profileText" className={fieldLabel}>
               About you
             </label>
@@ -98,7 +97,7 @@ export function Profile() {
             />
           </div>
 
-          <div className="border-t border-rule pt-6">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
             <label htmlFor="resume" className={fieldLabel}>
               Resume
             </label>
@@ -113,16 +112,16 @@ export function Profile() {
                   setResumeFileName(file.name);
                   uploadMutation.mutate(file);
                 }}
-                className="block w-full text-sm text-ink-soft file:mr-3 file:border-2 file:border-ink file:bg-paper file:px-3 file:py-1.5 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-ink hover:file:bg-ink hover:file:text-paper"
+                className="block w-full text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border-0 file:bg-secondary-container file:px-4 file:py-2 file:text-xs file:font-medium file:text-on-secondary-container"
               />
             </div>
-            <p className="mt-1.5 font-mono text-xs text-ink-faint">PDF or .txt, up to 5MB.</p>
+            <p className="mt-1.5 text-xs text-on-surface-variant/70">PDF or .txt, up to 5MB.</p>
 
-            {uploadMutation.isPending && <p className="mt-3 text-sm text-ink-soft">Reading {resumeFileName}…</p>}
+            {uploadMutation.isPending && <p className="mt-3 text-sm text-on-surface-variant">Reading {resumeFileName}…</p>}
 
             {(resumeText || resumeFileName) && !uploadMutation.isPending && (
               <div className="mt-3">
-                <label htmlFor="resumeText" className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+                <label htmlFor="resumeText" className="text-xs font-medium text-on-surface-variant/80">
                   Extracted text (edit if anything looks off)
                 </label>
                 <textarea
@@ -130,13 +129,13 @@ export function Profile() {
                   rows={5}
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  className="mt-1.5 w-full border border-rule bg-paper-dim px-3 py-2 font-mono text-xs text-ink-soft focus:border-rust focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 font-mono text-xs text-on-surface-variant focus:border-primary focus:outline-none"
                 />
               </div>
             )}
           </div>
 
-          <div className="border-t border-rule pt-6">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
             <label htmlFor="locations" className={fieldLabel}>
               Preferred locations
             </label>
@@ -148,36 +147,31 @@ export function Profile() {
               placeholder="San Francisco, New York, Remote"
               className={fieldInput}
             />
-            <p className="mt-1.5 font-mono text-xs text-ink-faint">Comma-separated.</p>
+            <p className="mt-1.5 text-xs text-on-surface-variant/70">Comma-separated.</p>
 
-            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink-soft">
-              <input
-                type="checkbox"
-                checked={remoteOk}
-                onChange={(e) => setRemoteOk(e.target.checked)}
-                className="h-4 w-4 accent-rust"
-              />
+            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+              <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-4 w-4 accent-primary" />
               Open to fully remote roles
             </label>
           </div>
 
           {status === "saved" && (
-            <p className="border-l-2 border-moss bg-moss-tint px-3 py-2 text-sm text-moss">Saved.</p>
+            <p className="rounded-xl bg-tertiary-container px-4 py-2.5 text-sm text-on-tertiary-container">Saved.</p>
           )}
           {status === "saved-no-embedding" && (
-            <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">
+            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">
               Saved — but "Match to my profile" search won't work yet. The server couldn't generate an embedding (no
               embeddings provider configured — OPENAI_API_KEY or a local Ollama).
             </p>
           )}
           {(status === "error" || uploadMutation.isError) && error && (
-            <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">{error}</p>
+            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={saveMutation.isPending || uploadMutation.isPending}
-            className="bg-ink px-6 py-3 text-sm font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-rust disabled:opacity-50"
+            className="state-layer rounded-full bg-primary px-6 py-3 text-sm font-medium text-on-primary shadow-sm disabled:opacity-50"
           >
             {saveMutation.isPending ? "Saving…" : "Save profile"}
           </button>

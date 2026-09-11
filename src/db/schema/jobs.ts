@@ -52,6 +52,11 @@ export const jobs = pgTable(
     // Added/populated by the enrichment stage (Phase 6) — null until then.
     embedding: vector("embedding", { dimensions: EMBEDDING_DIMENSIONS }),
 
+    // One-sentence, non-marketing summary — see src/pipeline/summarize.ts.
+    // Same null-until-generated / nulled-on-content-change lifecycle as
+    // embedding (see ingest.ts).
+    summary: text("summary"),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

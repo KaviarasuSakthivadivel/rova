@@ -9,6 +9,8 @@ const envSchema = z.object({
   EMBEDDINGS_PROVIDER: z.enum(["openai", "ollama"]).default("openai"),
   OLLAMA_BASE_URL: z.string().default("http://localhost:11434"),
   OLLAMA_EMBEDDING_MODEL: z.string().default("nomic-embed-text"),
+  SUMMARIZATION_PROVIDER: z.enum(["ollama", "claude"]).default("ollama"),
+  OLLAMA_CHAT_MODEL: z.string().default("llama3.2:3b"),
   RESEND_API_KEY: z.string().optional(),
   DIGEST_FROM_EMAIL: z.string().optional(),
   ADMIN_EMAIL: z.string().optional(),

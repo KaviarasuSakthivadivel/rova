@@ -26,31 +26,21 @@ export function Login() {
   }
 
   return (
-    <div className="grid min-h-screen bg-paper lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
-      <div className="hidden flex-col justify-between border-r-2 border-rule-strong bg-ink px-12 py-12 text-paper lg:flex">
-        <span className="font-display text-3xl font-semibold italic">Rova</span>
-        <div>
-          <p className="font-display text-4xl font-medium leading-tight xl:text-5xl">
-            The roles worth your time,
-            <br />
-            <span className="font-display-italic text-rust">found before</span> they're everywhere else.
-          </p>
-          <p className="mt-6 max-w-md font-mono text-sm text-paper/60">
-            Rova crawls company career pages directly — Greenhouse, Lever, Ashby — and ranks what it finds against
-            your actual background, not keywords.
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-surface-container-low px-4">
+      <div className="w-full max-w-sm rounded-3xl bg-surface-container-lowest p-8 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-bold text-on-primary">
+            R
+          </div>
+          <span className="text-xl font-medium text-on-surface">Rova</span>
         </div>
-        <span className="font-mono text-xs uppercase tracking-widest text-paper/40">Continuous role discovery</span>
-      </div>
 
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
-        <span className="mb-10 font-display text-2xl font-semibold italic text-ink lg:hidden">Rova</span>
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">Welcome back</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">Log in</h1>
+        <h1 className="mt-6 text-2xl font-medium text-on-surface">Log in</h1>
+        <p className="mt-1 text-sm text-on-surface-variant">Welcome back.</p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            <label htmlFor="email" className="text-sm font-medium text-on-surface-variant">
               Email
             </label>
             <input
@@ -59,11 +49,11 @@ export function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full border-2 border-ink bg-paper px-3 py-2.5 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div>
-            <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            <label htmlFor="password" className="text-sm font-medium text-on-surface-variant">
               Password
             </label>
             <input
@@ -72,21 +62,23 @@ export function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 w-full border-2 border-ink bg-paper px-3 py-2.5 text-ink focus:border-rust focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          {error && <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">{error}</p>}
+          {error && (
+            <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">{error}</p>
+          )}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-ink px-4 py-3 text-sm font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-rust disabled:opacity-50"
+            className="state-layer w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-on-primary shadow-sm disabled:opacity-50"
           >
             {isSubmitting ? "Logging in…" : "Log in"}
           </button>
         </form>
-        <p className="mt-6 text-sm text-ink-soft">
+        <p className="mt-6 text-center text-sm text-on-surface-variant">
           No account?{" "}
-          <Link to="/signup" className="font-semibold text-ink underline decoration-rust decoration-2 underline-offset-4">
+          <Link to="/signup" className="font-medium text-primary hover:underline">
             Sign up
           </Link>
         </p>

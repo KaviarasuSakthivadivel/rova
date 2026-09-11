@@ -39,6 +39,9 @@ export interface Job {
   applyUrl: string | null;
   status: string;
   firstSeenAt: string;
+  /** One-sentence, non-marketing summary — null until the summarization
+   * stage has processed this job. */
+  summary: string | null;
 }
 
 export type JobAction = "saved" | "dismissed" | "applied";

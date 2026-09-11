@@ -1,39 +1,73 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
 @theme {
-  /* Editorial-data palette: warm paper instead of stark white/slate,
-     near-black ink instead of pure black, one confident accent used
-     deliberately rather than a rainbow of semantic blues/indigos. */
-  --color-paper: #faf7f0;
-  --color-paper-dim: #f2ede1;
-  --color-ink: #16130f;
-  --color-ink-soft: #4a443c;
-  --color-ink-faint: #8a8175;
-  --color-rule: #ded5c2;
-  --color-rule-strong: #16130f;
+  /* Rova's own design system, built with Material Design 3's methodology:
+     role-based color tokens (not ad-hoc colors), a tonal surface hierarchy,
+     a defined type scale, and one consistent shape/elevation language
+     applied to every component. The palette itself is ours — a deep
+     sapphire blue, not Material's stock purple. */
+  --color-primary: #2451b0;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #dbe6ff;
+  --color-on-primary-container: #001a41;
 
-  --color-rust: #c1441e;
-  --color-rust-dim: #a53a19;
-  --color-rust-tint: #fbe9e0;
+  --color-secondary: #565f71;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #dae2f9;
+  --color-on-secondary-container: #131c2b;
 
-  --color-moss: #4b5f3f;
-  --color-moss-tint: #e9efe3;
+  --color-tertiary: #146c5f;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #cdf2e7;
+  --color-on-tertiary-container: #00201b;
 
-  --font-display: "Fraunces", "Iowan Old Style", serif;
-  --font-sans: "Archivo", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+
+  --color-surface: #fdfbff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f5fc;
+  --color-surface-container: #f0eef7;
+  --color-surface-container-high: #eaeaf1;
+  --color-surface-container-highest: #e4e4eb;
+
+  --color-on-surface: #1a1b20;
+  --color-on-surface-variant: #44464f;
+  --color-outline: #75777f;
+  --color-outline-variant: #c5c6d0;
+
+  --font-sans: "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
   font-family: var(--font-sans);
 }
 
-/* Fraunces' italic is doing real design work here — keep it available as
-   a utility rather than reaching for a generic font-style everywhere. */
-.font-display-italic {
-  font-family: var(--font-display);
-  font-style: italic;
+/* M3-style state layer: hovering/pressing a component tints it with its
+   own ink color at low opacity, instead of swapping to a flat hover color. */
+.state-layer {
+  position: relative;
+  isolation: isolate;
+}
+.state-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+.state-layer:hover::after {
+  opacity: 0.08;
+}
+.state-layer:active::after {
+  opacity: 0.12;
 }

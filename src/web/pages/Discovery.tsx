@@ -33,9 +33,8 @@ export function Discovery() {
 
   return (
     <div className="max-w-2xl">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">Admin</p>
-      <h1 className="mt-1 font-display text-4xl font-medium text-ink">Company discovery</h1>
-      <p className="mt-2 text-sm text-ink-soft">
+      <h1 className="text-3xl font-normal text-on-surface">Company discovery</h1>
+      <p className="mt-1 text-sm text-on-surface-variant">
         Heuristic URL patterns first, Claude + web search as a fallback. Nothing joins the tracked company list
         without approval here.
       </p>
@@ -50,9 +49,9 @@ export function Discovery() {
           if (names.length === 0) return;
           discoverMutation.mutate(names);
         }}
-        className="mt-8 space-y-3 border-b-2 border-rule-strong pb-6"
+        className="mt-6 space-y-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5"
       >
-        <label htmlFor="names" className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+        <label htmlFor="names" className="text-sm font-medium text-on-surface-variant">
           Company names (one per line)
         </label>
         <textarea
@@ -61,29 +60,32 @@ export function Discovery() {
           value={namesInput}
           onChange={(e) => setNamesInput(e.target.value)}
           placeholder={"Anthropic\nExample Co"}
-          className="w-full border-2 border-ink bg-paper px-3 py-2.5 text-ink placeholder:text-ink-faint focus:border-rust focus:outline-none"
+          className="w-full rounded-xl border border-outline bg-transparent px-4 py-3 text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
-        {error && <p className="border-l-2 border-rust bg-rust-tint px-3 py-2 text-sm text-rust-dim">{error}</p>}
+        {error && <p className="rounded-xl bg-error-container px-4 py-2.5 text-sm text-on-error-container">{error}</p>}
         <button
           type="submit"
           disabled={discoverMutation.isPending}
-          className="bg-ink px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-rust disabled:opacity-50"
+          className="state-layer rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-on-primary shadow-sm disabled:opacity-50"
         >
           {discoverMutation.isPending ? "Searching…" : "Discover"}
         </button>
       </form>
 
-      <p className="mt-8 font-mono text-xs uppercase tracking-wide text-ink-faint">
+      <p className="mt-8 text-xs font-medium uppercase tracking-wide text-on-surface-variant/70">
         Pending review — {candidatesQuery.data?.candidates.length ?? 0}
       </p>
       <div className="mt-3 space-y-3">
-        {candidatesQuery.isLoading && <p className="text-sm text-ink-soft">Loading…</p>}
-        {candidatesQuery.data?.candidates.length === 0 && <p className="text-sm text-ink-soft">Nothing pending.</p>}
+        {candidatesQuery.isLoading && <p className="text-sm text-on-surface-variant">Loading…</p>}
+        {candidatesQuery.data?.candidates.length === 0 && <p className="text-sm text-on-surface-variant">Nothing pending.</p>}
         {candidatesQuery.data?.candidates.map((candidate) => (
-          <article key={candidate.id} className="flex items-start justify-between gap-4 border border-ink p-4">
+          <article
+            key={candidate.id}
+            className="flex items-start justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm"
+          >
             <div>
-              <p className="font-display text-lg font-medium text-ink">{candidate.name}</p>
-              <p className="mt-0.5 font-mono text-xs text-ink-soft">
+              <p className="text-base font-medium text-on-surface">{candidate.name}</p>
+              <p className="mt-0.5 font-mono text-xs text-on-surface-variant">
                 {candidate.guessedAts ? `${candidate.guessedAts} / ${candidate.guessedIdentifier}` : "no ATS guess"}
                 {candidate.confidence ? ` · confidence ${candidate.confidence}` : ""}
               </p>
@@ -93,7 +95,7 @@ export function Discovery() {
                 type="button"
                 disabled={approveMutation.isPending || !candidate.guessedAts}
                 onClick={() => approveMutation.mutate(candidate.id)}
-                className="border border-moss px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-moss transition-colors hover:bg-moss hover:text-paper disabled:opacity-40"
+                className="state-layer rounded-full bg-tertiary-container px-4 py-1.5 text-xs font-medium text-on-tertiary-container disabled:opacity-40"
               >
                 Approve
               </button>
@@ -101,7 +103,7 @@ export function Discovery() {
                 type="button"
                 disabled={rejectMutation.isPending}
                 onClick={() => rejectMutation.mutate(candidate.id)}
-                className="border border-rule-strong px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft transition-colors hover:border-rust hover:text-rust-dim disabled:opacity-40"
+                className="state-layer rounded-full border border-outline px-4 py-1.5 text-xs font-medium text-on-surface-variant disabled:opacity-40"
               >
                 Reject
               </button>
