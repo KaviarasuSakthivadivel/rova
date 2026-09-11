@@ -2,9 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/web/lib/api";
 
-const fieldLabel = "text-xs font-medium text-fg-muted";
-const fieldInput =
-  "mt-1 w-full rounded-md border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
+const fieldLabel = "text-xs font-semibold text-ink-muted";
+const fieldInput = "mt-1 w-full rounded-xl bg-panel-soft px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand";
 
 export function Profile() {
   const queryClient = useQueryClient();
@@ -65,12 +64,12 @@ export function Profile() {
   });
 
   return (
-    <div className="max-w-xl">
-      <h1 className="text-2xl font-bold text-fg">Your profile</h1>
-      <p className="mt-1 text-sm text-fg-muted">Feeds every rank and match on the Jobs page.</p>
+    <div className="h-full max-w-xl overflow-y-auto px-6 py-8 sm:px-10">
+      <h1 className="text-3xl font-extrabold tracking-tight text-ink">Your profile</h1>
+      <p className="mt-1 text-ink-muted">Feeds every rank and match on the Jobs page.</p>
 
       {profileQuery.isLoading ? (
-        <p className="mt-6 text-sm text-fg-muted">Loading…</p>
+        <p className="mt-6 text-sm text-ink-muted">Loading…</p>
       ) : (
         <form
           onSubmit={(e) => {
@@ -78,9 +77,9 @@ export function Profile() {
             setStatus("idle");
             saveMutation.mutate();
           }}
-          className="mt-5 space-y-4 rounded-lg border border-border bg-bg p-5"
+          className="mt-6 space-y-4"
         >
-          <div>
+          <div className="rounded-2xl bg-panel p-6 shadow-sm">
             <label htmlFor="profileText" className={fieldLabel}>
               About you
             </label>
@@ -95,7 +94,7 @@ export function Profile() {
             />
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="rounded-2xl bg-panel p-6 shadow-sm">
             <label htmlFor="resume" className={fieldLabel}>
               Resume
             </label>
@@ -109,15 +108,15 @@ export function Profile() {
                 setResumeFileName(file.name);
                 uploadMutation.mutate(file);
               }}
-              className="mt-1.5 block w-full text-sm text-fg-muted file:mr-3 file:rounded-md file:border file:border-border-strong file:bg-bg file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-fg hover:file:bg-bg-muted"
+              className="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-brand-ink"
             />
-            <p className="mt-1 text-xs text-fg-subtle">PDF or .txt, up to 5MB.</p>
+            <p className="mt-1.5 text-xs text-ink-faint">PDF or .txt, up to 5MB.</p>
 
-            {uploadMutation.isPending && <p className="mt-2 text-sm text-fg-muted">Reading {resumeFileName}…</p>}
+            {uploadMutation.isPending && <p className="mt-3 text-sm text-ink-muted">Reading {resumeFileName}…</p>}
 
             {(resumeText || resumeFileName) && !uploadMutation.isPending && (
-              <div className="mt-2">
-                <label htmlFor="resumeText" className="text-xs font-medium text-fg-subtle">
+              <div className="mt-3">
+                <label htmlFor="resumeText" className="text-xs font-medium text-ink-faint">
                   Extracted text (edit if anything looks off)
                 </label>
                 <textarea
@@ -125,13 +124,13 @@ export function Profile() {
                   rows={5}
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-border bg-bg-subtle px-2.5 py-1.5 font-mono text-xs text-fg-muted focus:border-accent focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl bg-panel-soft px-3.5 py-2.5 font-mono text-xs text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
             )}
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="rounded-2xl bg-panel p-6 shadow-sm">
             <label htmlFor="locations" className={fieldLabel}>
               Preferred locations
             </label>
@@ -143,29 +142,29 @@ export function Profile() {
               placeholder="San Francisco, New York, Remote"
               className={fieldInput}
             />
-            <p className="mt-1 text-xs text-fg-subtle">Comma-separated.</p>
+            <p className="mt-1.5 text-xs text-ink-faint">Comma-separated.</p>
 
-            <label className="mt-3 flex items-center gap-1.5 text-sm text-fg-muted">
-              <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-3.5 w-3.5 accent-accent" />
+            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink-muted">
+              <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-4 w-4 accent-brand" />
               Open to fully remote roles
             </label>
           </div>
 
-          {status === "saved" && <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success">Saved.</p>}
+          {status === "saved" && <p className="rounded-xl bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">Saved.</p>}
           {status === "saved-no-embedding" && (
-            <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger">
+            <p className="rounded-xl bg-red-soft px-4 py-2.5 text-sm text-red">
               Saved — but "Match to my profile" search won't work yet. The server couldn't generate an embedding (no
               embeddings provider configured — OPENAI_API_KEY or a local Ollama).
             </p>
           )}
           {(status === "error" || uploadMutation.isError) && error && (
-            <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</p>
+            <p className="rounded-xl bg-red-soft px-4 py-2.5 text-sm text-red">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={saveMutation.isPending || uploadMutation.isPending}
-            className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            className="rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
           >
             {saveMutation.isPending ? "Saving…" : "Save profile"}
           </button>

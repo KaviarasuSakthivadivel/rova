@@ -2,41 +2,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #ffffff;
-  --color-bg-subtle: #faf9fc;
-  --color-bg-muted: #f2effa;
+  --color-bg: #f6f6f3;
+  --color-panel: #ffffff;
+  --color-panel-soft: #fbfbf9;
 
-  --color-fg: #1c1730;
-  --color-fg-muted: #5b5470;
-  --color-fg-subtle: #9891ab;
+  --color-ink: #1f2320;
+  --color-ink-muted: #5c6259;
+  --color-ink-faint: #9a9e94;
 
-  --color-border: #e7e2f3;
-  --color-border-strong: #d3cbe9;
+  --color-line: #e6e5df;
 
-  /* Vivid violet as the one confident brand color — used everywhere,
-     not just on buttons: the sidebar, active states, and score chips. */
-  --color-accent: #7c3aed;
-  --color-accent-hover: #6d28d9;
-  --color-accent-subtle: #f3ecfe;
+  /* Emerald as the one confident color — new hue vs. every earlier pass
+     (rust, navy, sapphire, violet). Used generously, not just on buttons. */
+  --color-brand: #047857;
+  --color-brand-dark: #035c44;
+  --color-brand-soft: #e4f3ec;
+  --color-brand-ink: #033d2e;
 
-  --color-sidebar: #241b3f;
-  --color-sidebar-hover: #33285a;
-  --color-sidebar-active: #4c2f8f;
-
-  --color-success: #0d9488;
-  --color-success-subtle: #ecfdf5;
-  --color-warning: #d97706;
-  --color-warning-subtle: #fffbeb;
-  --color-danger: #e11d48;
-  --color-danger-subtle: #fff1f3;
+  --color-gold: #b45309;
+  --color-gold-soft: #fef3e2;
+  --color-red: #be123c;
+  --color-red-soft: #fde8ed;
 
   --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 body {
-  background-color: var(--color-bg-subtle);
-  color: var(--color-fg);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 15.5px;
   line-height: 1.55;

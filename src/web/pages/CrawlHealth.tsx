@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError, api } from "@/web/lib/api";
 
-function statusBadgeClass(status: string): string {
-  if (status === "success") return "bg-success-subtle text-success";
-  if (status === "failed") return "bg-danger-subtle text-danger";
-  return "bg-bg-muted text-fg-muted";
+function statusColor(status: string): string {
+  if (status === "success") return "text-brand";
+  if (status === "failed") return "text-red";
+  return "text-ink-faint";
 }
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {
@@ -36,62 +36,58 @@ export function CrawlHealth() {
   });
 
   return (
-    <div>
+    <div className="h-full max-w-5xl overflow-y-auto px-6 py-8 sm:px-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-fg">Crawl health</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Crawl health</h1>
         <button
           type="button"
           disabled={triggerMutation.isPending}
           onClick={() => triggerMutation.mutate()}
-          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {triggerMutation.isPending ? "Starting…" : "Run crawl now"}
         </button>
       </div>
 
-      {triggerError && <p className="mt-3 rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger">{triggerError}</p>}
+      {triggerError && <p className="mt-4 rounded-xl bg-red-soft px-4 py-2.5 text-sm text-red">{triggerError}</p>}
       {triggerMutation.isSuccess && !triggerError && (
-        <p className="mt-3 rounded-md bg-success-subtle px-3 py-2 text-sm text-success">
+        <p className="mt-4 rounded-xl bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">
           Crawl started — this list updates automatically.
         </p>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-border">
-        {runsQuery.isLoading && <p className="p-4 text-sm text-fg-muted">Loading…</p>}
-        {runsQuery.isError && <p className="p-4 text-sm text-danger">Failed to load crawl runs.</p>}
-        {runsQuery.data && runsQuery.data.runs.length === 0 && <p className="p-4 text-sm text-fg-muted">No crawl runs yet.</p>}
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-panel shadow-sm">
+        {runsQuery.isLoading && <p className="p-5 text-sm text-ink-muted">Loading…</p>}
+        {runsQuery.isError && <p className="p-5 text-sm text-red">Failed to load crawl runs.</p>}
+        {runsQuery.data && runsQuery.data.runs.length === 0 && <p className="p-5 text-sm text-ink-muted">No crawl runs yet.</p>}
 
         {runsQuery.data && runsQuery.data.runs.length > 0 && (
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-bg-subtle text-left text-xs font-medium text-fg-muted">
-                <th className="px-3 py-2">Company</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Started</th>
-                <th className="px-3 py-2">Duration</th>
-                <th className="px-3 py-2">Seen</th>
-                <th className="px-3 py-2">Added</th>
-                <th className="px-3 py-2">Updated</th>
-                <th className="px-3 py-2">Closed</th>
-                <th className="px-3 py-2">Error</th>
+              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                <th className="px-5 pb-2 pt-5">Company</th>
+                <th className="px-3 pb-2 pt-5">Status</th>
+                <th className="px-3 pb-2 pt-5">Started</th>
+                <th className="px-3 pb-2 pt-5">Duration</th>
+                <th className="px-3 pb-2 pt-5">Seen</th>
+                <th className="px-3 pb-2 pt-5">Added</th>
+                <th className="px-3 pb-2 pt-5">Updated</th>
+                <th className="px-3 pb-2 pt-5">Closed</th>
+                <th className="px-3 pb-2 pt-5">Error</th>
               </tr>
             </thead>
             <tbody className="font-mono text-[13px]">
               {runsQuery.data.runs.map((run) => (
-                <tr key={run.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-sans font-medium text-fg">{run.companyName}</td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${statusBadgeClass(run.status)}`}>
-                      {run.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-fg-muted">{new Date(run.startedAt).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-fg-muted">{formatDuration(run.startedAt, run.finishedAt)}</td>
-                  <td className="px-3 py-2 text-fg-muted">{run.jobsSeen ?? "—"}</td>
-                  <td className="px-3 py-2 text-success">{run.jobsAdded ? `+${run.jobsAdded}` : "—"}</td>
-                  <td className="px-3 py-2 text-fg-muted">{run.jobsUpdated ?? "—"}</td>
-                  <td className="px-3 py-2 text-danger">{run.jobsClosed ? `−${run.jobsClosed}` : "—"}</td>
-                  <td className="max-w-xs truncate px-3 py-2 text-danger" title={run.errorMessage ?? undefined}>
+                <tr key={run.id} className="border-t border-line">
+                  <td className="px-5 py-3 font-sans font-semibold text-ink">{run.companyName}</td>
+                  <td className={`px-3 py-3 font-sans font-semibold ${statusColor(run.status)}`}>{run.status}</td>
+                  <td className="px-3 py-3 text-ink-muted">{new Date(run.startedAt).toLocaleString()}</td>
+                  <td className="px-3 py-3 text-ink-muted">{formatDuration(run.startedAt, run.finishedAt)}</td>
+                  <td className="px-3 py-3 text-ink-muted">{run.jobsSeen ?? "—"}</td>
+                  <td className="px-3 py-3 text-brand">{run.jobsAdded ? `+${run.jobsAdded}` : "—"}</td>
+                  <td className="px-3 py-3 text-ink-muted">{run.jobsUpdated ?? "—"}</td>
+                  <td className="px-3 py-3 text-red">{run.jobsClosed ? `−${run.jobsClosed}` : "—"}</td>
+                  <td className="max-w-xs truncate px-3 py-3 text-red" title={run.errorMessage ?? undefined}>
                     {run.errorMessage ?? ""}
                   </td>
                 </tr>
