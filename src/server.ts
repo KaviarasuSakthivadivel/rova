@@ -5,6 +5,7 @@ import type { AuthEnv } from "@/auth/middleware";
 import { attachSession } from "@/auth/middleware";
 import { adminRoutes } from "@/api/admin";
 import { authRoutes } from "@/api/auth";
+import { discoveryRoutes } from "@/api/discovery";
 import { jobsRoutes } from "@/api/jobs";
 import { profileRoutes } from "@/api/profile";
 import { env } from "@/config";
@@ -20,6 +21,7 @@ export function createApp() {
   app.route("/api/profile", profileRoutes);
   app.route("/api/jobs", jobsRoutes);
   app.route("/api/admin", adminRoutes);
+  app.route("/api/admin", discoveryRoutes);
 
   return app;
 }
