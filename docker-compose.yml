@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rova
+      POSTGRES_PASSWORD: rova
+      POSTGRES_DB: rova
+    ports:
+      - "5544:5432"
+    volumes:
+      - rova_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rova -d rova"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rova_postgres_data:

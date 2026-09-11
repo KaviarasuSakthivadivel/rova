@@ -1,0 +1,21 @@
+{
+  "jobs": [
+    {
+      "title": "Infrastructure Engineer",
+      "descriptionHtml": "<p>Own our Kubernetes and CI infrastructure.</p>",
+      "location": "London, UK",
+      "department": "Engineering",
+      "team": "Infrastructure",
+      "jobUrl": "https://jobs.ashbyhq.com/example/infra-engineer",
+      "applyUrl": "https://jobs.ashbyhq.com/example/infra-engineer/apply",
+      "isListed": true,
+      "compensation": { "summary": "£90k - £120k" }
+    },
+    {
+      "title": "Unlisted Draft Role",
+      "descriptionHtml": "<p>Should be filtered out.</p>",
+      "location": "Remote",
+      "isListed": false
+    }
+  ]
+}

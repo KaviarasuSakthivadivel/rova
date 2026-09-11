@@ -1,0 +1,2 @@
+ALTER TABLE "user_job_actions" DROP CONSTRAINT "user_job_actions_user_id_job_id_action_unique";--> statement-breakpoint
+ALTER TABLE "user_job_actions" ADD CONSTRAINT "user_job_actions_user_id_job_id_unique" UNIQUE("user_id","job_id");

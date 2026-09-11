@@ -1,0 +1,22 @@
+[
+  {
+    "id": "abc-123-def",
+    "text": "Staff Software Engineer, Data Platform",
+    "descriptionPlain": "We run a large-scale streaming platform on Kafka and AWS.",
+    "hostedUrl": "https://jobs.lever.co/example/abc-123-def",
+    "applyUrl": "https://jobs.lever.co/example/abc-123-def/apply",
+    "workplaceType": "remote",
+    "categories": {
+      "location": "Remote - US",
+      "department": "Engineering",
+      "team": "Data Platform",
+      "commitment": "Full-time"
+    },
+    "salaryRange": {
+      "currency": "USD",
+      "min": 220000,
+      "max": 300000,
+      "interval": "per-year-salary"
+    }
+  }
+]

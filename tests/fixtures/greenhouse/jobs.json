@@ -1,0 +1,24 @@
+{
+  "jobs": [
+    {
+      "id": 7654321,
+      "title": "Senior Backend Engineer",
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;h2&gt;&lt;strong&gt;About Example&lt;/strong&gt;&lt;/h2&gt; &lt;p&gt;We build things. Requires Java &amp;amp; Kafka.&lt;/p&gt;&lt;/div&gt;",
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/7654321",
+      "first_published": "2026-01-05T12:00:00-05:00",
+      "updated_at": "2026-01-06T09:30:00-05:00",
+      "location": { "name": "Remote - US" },
+      "offices": [{ "location": "San Francisco, CA" }]
+    },
+    {
+      "id": 7654322,
+      "title": "Product Designer",
+      "content": "<p>No location.name here, falls back to offices[0].</p>",
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/7654322",
+      "first_published": null,
+      "updated_at": "2026-01-07T00:00:00-05:00",
+      "location": {},
+      "offices": [{ "location": "New York, NY" }]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "rova",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "module": "src/main.ts",
+  "scripts": {
+    "dev": "bun run --watch src/main.ts serve",
+    "dev:worker": "bun run --watch src/main.ts worker",
+    "build": "bun run scripts/build.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run src/main.ts migrate",
+    "db:seed": "bun run src/main.ts seed",
+    "db:studio": "drizzle-kit studio",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
+    "@hono/zod-validator": "^0.4.2",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
+    "@tanstack/react-query": "^5.102.8",
+    "croner": "^9.0.0",
+    "drizzle-orm": "^0.45.2",
+    "entities": "^8.1.0",
+    "hono": "^4.13.7",
+    "html-to-text": "^10.0.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.3",
+    "unpdf": "^1.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/html-to-text": "^9.0.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "bun-plugin-tailwind": "^0.1.2",
+    "drizzle-kit": "^0.31.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2"
+  }
+}
