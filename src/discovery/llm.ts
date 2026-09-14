@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/config";
+import { logGeneration } from "@/observability/langfuse";
 
 export class DiscoveryNotConfiguredError extends Error {
   constructor() {
@@ -78,39 +79,55 @@ export async function discoverViaLlm(companyName: string, domain?: string): Prom
     ],
   });
 
+  const usage = { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
+  let result: DiscoveryResult | null = null;
+  let error: string | undefined;
+
   if (response.stop_reason === "refusal") {
     console.warn(`[discovery] Claude declined to research "${companyName}" (refusal)`);
-    return null;
+    error = "refusal";
+  } else {
+    const textBlocks = response.content.filter((b) => b.type === "text");
+    const lastText = textBlocks[textBlocks.length - 1];
+    if (!lastText || lastText.type !== "text") {
+      console.warn(`[discovery] no text block in Claude's response for "${companyName}"`);
+      error = "no text block in response";
+    } else {
+      // The model may wrap JSON in prose or fences despite instructions —
+      // extract the last {...} block defensively rather than trust the
+      // whole text is bare JSON.
+      const jsonMatch = lastText.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn(`[discovery] no JSON found in Claude's response for "${companyName}"`);
+        error = "no JSON found in response";
+      } else {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch {
+          console.warn(`[discovery] Claude's response wasn't valid JSON for "${companyName}"`);
+          error = "response wasn't valid JSON";
+        }
+        if (!error && !isDiscoveryResult(parsed)) {
+          console.warn(`[discovery] Claude's response didn't match the expected shape for "${companyName}"`);
+          error = "response didn't match the expected shape";
+        } else if (!error) {
+          result = parsed as DiscoveryResult;
+        }
+      }
+    }
   }
 
-  const textBlocks = response.content.filter((b) => b.type === "text");
-  const lastText = textBlocks[textBlocks.length - 1];
-  if (!lastText || lastText.type !== "text") {
-    console.warn(`[discovery] no text block in Claude's response for "${companyName}"`);
-    return null;
-  }
+  logGeneration({
+    name: "discover-company",
+    provider: "claude",
+    model: env.ANTHROPIC_MODEL,
+    input: { companyName, domain },
+    output: result,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    error,
+  });
 
-  // The model may wrap JSON in prose or fences despite instructions —
-  // extract the last {...} block defensively rather than trust the whole
-  // text is bare JSON.
-  const jsonMatch = lastText.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.warn(`[discovery] no JSON found in Claude's response for "${companyName}"`);
-    return null;
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch {
-    console.warn(`[discovery] Claude's response wasn't valid JSON for "${companyName}"`);
-    return null;
-  }
-
-  if (!isDiscoveryResult(parsed)) {
-    console.warn(`[discovery] Claude's response didn't match the expected shape for "${companyName}"`);
-    return null;
-  }
-
-  return parsed;
+  return result;
 }

@@ -12,6 +12,8 @@ export function Profile() {
   const [profileText, setProfileText] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumePreviewUrl, setResumePreviewUrl] = useState<string | null>(null);
+  const [resumeIsPdf, setResumeIsPdf] = useState(false);
   const [locations, setLocations] = useState("");
   const [remoteOk, setRemoteOk] = useState(true);
   const [status, setStatus] = useState<"idle" | "saved" | "saved-no-embedding" | "error">("idle");
@@ -25,6 +27,14 @@ export function Profile() {
     setLocations((profile.preferences.locations ?? []).join(", "));
     setRemoteOk(profile.preferences.remoteOk ?? true);
   }, [profileQuery.data]);
+
+  // Preview is derived from the in-memory File, not stored server-side —
+  // it only exists for the file just picked in this browser session.
+  useEffect(() => {
+    return () => {
+      if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl);
+    };
+  }, [resumePreviewUrl]);
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) => api.uploadResume(file),
@@ -106,6 +116,12 @@ export function Profile() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 setResumeFileName(file.name);
+
+                if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl);
+                const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+                setResumeIsPdf(isPdf);
+                setResumePreviewUrl(isPdf ? URL.createObjectURL(file) : null);
+
                 uploadMutation.mutate(file);
               }}
               className="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-brand-ink"
@@ -114,11 +130,19 @@ export function Profile() {
 
             {uploadMutation.isPending && <p className="mt-3 text-sm text-ink-muted">Reading {resumeFileName}…</p>}
 
+            {resumeIsPdf && resumePreviewUrl && !uploadMutation.isPending && (
+              <iframe
+                src={resumePreviewUrl}
+                title="Resume preview"
+                className="mt-3 h-96 w-full rounded-xl border border-line bg-panel-soft"
+              />
+            )}
+
             {(resumeText || resumeFileName) && !uploadMutation.isPending && (
-              <div className="mt-3">
-                <label htmlFor="resumeText" className="text-xs font-medium text-ink-faint">
-                  Extracted text (edit if anything looks off)
-                </label>
+              <details className="mt-3 group">
+                <summary className="cursor-pointer text-xs font-medium text-ink-faint select-none group-open:text-ink-muted">
+                  Show extracted text (edit if anything looks off)
+                </summary>
                 <textarea
                   id="resumeText"
                   rows={5}
@@ -126,7 +150,7 @@ export function Profile() {
                   onChange={(e) => setResumeText(e.target.value)}
                   className="mt-1.5 w-full rounded-xl bg-panel-soft px-3.5 py-2.5 font-mono text-xs text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand"
                 />
-              </div>
+              </details>
             )}
           </div>
 

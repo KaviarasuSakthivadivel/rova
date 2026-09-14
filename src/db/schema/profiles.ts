@@ -25,6 +25,11 @@ export const candidateProfiles = pgTable("candidate_profiles", {
   // (embed-on-save). Embeds profileText + resumeText combined.
   embedding: vector("embedding", { dimensions: EMBEDDING_DIMENSIONS }),
 
+  // Null until the user first opens the Dashboard — see GET
+  // /api/jobs/new-count, which falls back to createdAt below so a brand
+  // new profile doesn't flag every historical job as NEW.
+  matchesLastViewedAt: timestamp("matches_last_viewed_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

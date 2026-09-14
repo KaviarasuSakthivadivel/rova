@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "@/auth/middleware";
@@ -76,6 +76,7 @@ export const discoveryRoutes = new Hono<AuthEnv>()
         ats,
         atsIdentifier: identifier,
         careersUrl: boardUrlFor(ats, identifier),
+        domain: candidate.domain,
       })
       .onConflictDoNothing({ target: [companies.ats, companies.atsIdentifier] });
 
@@ -95,4 +96,29 @@ export const discoveryRoutes = new Hono<AuthEnv>()
 
     if (!updated) return c.json({ error: "not found" }, 404);
     return c.json({ ok: true });
+  })
+
+  .get("/companies", async (c) => {
+    const rows = await db.select().from(companies).orderBy(asc(companies.name));
+    return c.json({ companies: rows });
+  })
+
+  // Soft-remove, not a delete: companies.id cascades to jobs and
+  // everything hanging off them (snapshots, saved/dismissed actions,
+  // rankings, application packets) — a hard delete here would silently
+  // wipe a user's saved jobs and pipeline history for this company. This
+  // just excludes it from future crawls (runCrawl only iterates active
+  // companies); its existing jobs stay exactly as they are.
+  .post("/companies/:id/deactivate", async (c) => {
+    const id = c.req.param("id");
+    const [updated] = await db.update(companies).set({ active: false, updatedAt: new Date() }).where(eq(companies.id, id)).returning();
+    if (!updated) return c.json({ error: "not found" }, 404);
+    return c.json({ company: updated });
+  })
+
+  .post("/companies/:id/reactivate", async (c) => {
+    const id = c.req.param("id");
+    const [updated] = await db.update(companies).set({ active: true, updatedAt: new Date() }).where(eq(companies.id, id)).returning();
+    if (!updated) return c.json({ error: "not found" }, 404);
+    return c.json({ company: updated });
   });

@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { jobs, jobSnapshots } from "@/db/schema";
 import type { NormalizedJob } from "@/sources/base";
-import { contentHash, htmlToText } from "./normalize";
+import { contentHash, htmlToText, sanitizeDescriptionHtml } from "./normalize";
 
 export type UpsertResult = "ADDED" | "UPDATED" | "UNCHANGED";
 
@@ -18,6 +18,7 @@ export async function upsertJob(
   incoming: NormalizedJob,
 ): Promise<UpsertResult> {
   const description = htmlToText(incoming.description);
+  const descriptionHtml = sanitizeDescriptionHtml(incoming.description);
   const hash = contentHash(incoming.title, description, incoming.location);
   const now = new Date();
 
@@ -34,6 +35,7 @@ export async function upsertJob(
       externalId: incoming.externalId,
       title: incoming.title,
       description,
+      descriptionHtml,
       location: incoming.location,
       workplaceType: incoming.workplaceType,
       department: incoming.department,
@@ -75,6 +77,7 @@ export async function upsertJob(
     .set({
       title: incoming.title,
       description,
+      descriptionHtml,
       location: incoming.location,
       workplaceType: incoming.workplaceType,
       department: incoming.department,

@@ -15,6 +15,13 @@ export const companies = pgTable(
     atsIdentifier: text("ats_identifier").notNull(),
 
     careersUrl: text("careers_url"),
+    // Company's own domain (e.g. "anthropic.com") — NOT the ATS-hosted
+    // careers URL host (boards.greenhouse.io/... etc). Used to fetch a
+    // logo via Clearbit's free unauthenticated logo API; null renders as
+    // an initials avatar instead. Populated from the discovery LLM's
+    // resolved domain when a candidate is approved (src/api/discovery.ts)
+    // — never guessed from the ATS slug, which is frequently wrong.
+    domain: text("domain"),
 
     active: boolean("active").notNull().default(true),
 

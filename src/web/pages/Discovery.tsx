@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { CompanyLogo } from "@/web/components/CompanyLogo";
 import { api, ApiError } from "@/web/lib/api";
 
 export function Discovery() {
@@ -10,6 +11,21 @@ export function Discovery() {
   const candidatesQuery = useQuery({
     queryKey: ["discovery-candidates"],
     queryFn: () => api.getDiscoveryCandidates(),
+  });
+
+  const companiesQuery = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => api.getCompanies(),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => api.deactivateCompany(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["companies"] }),
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => api.reactivateCompany(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["companies"] }),
   });
 
   const discoverMutation = useMutation({
@@ -110,6 +126,53 @@ export function Discovery() {
           </div>
         ))}
       </div>
+
+      <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+        Tracked companies — {companiesQuery.data?.companies.filter((c) => c.active).length ?? 0} active
+      </p>
+      <div className="mt-2 rounded-2xl bg-panel px-6 shadow-sm">
+        {companiesQuery.isLoading && <p className="py-5 text-sm text-ink-muted">Loading…</p>}
+        {companiesQuery.data?.companies.length === 0 && <p className="py-5 text-sm text-ink-muted">Nothing tracked yet.</p>}
+        {companiesQuery.data?.companies.map((company, i) => (
+          <div
+            key={company.id}
+            className={`flex items-center justify-between gap-4 py-4 ${i > 0 ? "border-t border-line" : ""} ${company.active ? "" : "opacity-50"}`}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <CompanyLogo name={company.name} domain={company.domain} size="sm" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-ink">{company.name}</p>
+                <p className="mt-0.5 truncate font-mono text-xs text-ink-muted">
+                  {company.ats} / {company.atsIdentifier}
+                  {!company.active ? " · removed" : ""}
+                </p>
+              </div>
+            </div>
+            {company.active ? (
+              <button
+                type="button"
+                disabled={deactivateMutation.isPending}
+                onClick={() => deactivateMutation.mutate(company.id)}
+                className="shrink-0 text-xs font-bold text-ink-faint hover:text-red disabled:opacity-40"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={reactivateMutation.isPending}
+                onClick={() => reactivateMutation.mutate(company.id)}
+                className="shrink-0 text-xs font-bold text-brand disabled:opacity-40"
+              >
+                Re-add
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-ink-faint">
+        Removing a company stops future crawls for it — its already-crawled jobs and your history with them stay put.
+      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { and, cosineDistance, eq, gt, ilike, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, digestDeliveries, jobRankings, jobs, userJobActions } from "@/db/schema";
+import { buildSeniorityCondition } from "@/pipeline/jobFilters";
 import { estimateCostUsd, type JobScore, rankJob, RankingNotConfiguredError } from "@/ranking/claude";
 
 const SHORTLIST_SIZE = 100; // SQL filter -> vector top-N, never wider than this
@@ -156,14 +157,22 @@ async function scoreCandidatesWithCache(
   };
 }
 
-async function vectorShortlist(
-  profileEmbedding: number[],
-  extraExclusions: Set<string>,
-  location?: string,
-): Promise<ScoreCandidate[]> {
+export interface SearchFilters {
+  location?: string;
+  postedSince?: Date;
+  companyIds?: string[];
+  seniority?: string[];
+}
+
+async function vectorShortlist(profileEmbedding: number[], extraExclusions: Set<string>, filters: SearchFilters = {}): Promise<ScoreCandidate[]> {
+  const { location, postedSince, companyIds, seniority } = filters;
   const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
   if (extraExclusions.size > 0) conditions.push(notInArray(jobs.id, [...extraExclusions]));
   if (location) conditions.push(ilike(jobs.location, `%${location}%`));
+  if (postedSince) conditions.push(gt(jobs.firstSeenAt, postedSince));
+  if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
+  const seniorityCondition = buildSeniorityCondition(seniority);
+  if (seniorityCondition) conditions.push(seniorityCondition);
 
   const distance = cosineDistance(jobs.embedding, profileEmbedding);
   return db
@@ -245,14 +254,14 @@ export interface RankSearchResult {
  * job), and returns everything scored rather than trimming to a top-N —
  * the caller applies its own limit/offset.
  */
-export async function rankSearchResultsForUser(userId: string, location?: string): Promise<RankSearchResult> {
+export async function rankSearchResultsForUser(userId: string, filters: SearchFilters = {}): Promise<RankSearchResult> {
   const empty = (reason: string): RankSearchResult => ({ ranked: [], scoredCount: 0, cachedCount: 0, reason });
 
   const [profile] = await db.select().from(candidateProfiles).where(eq(candidateProfiles.userId, userId)).limit(1);
   if (!profile) return empty("no profile");
   if (!profile.embedding) return empty("profile has no embedding yet");
 
-  const shortlist = await vectorShortlist(profile.embedding, new Set(), location);
+  const shortlist = await vectorShortlist(profile.embedding, new Set(), filters);
   if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
 
   const result = await scoreCandidatesWithCache(profile.id, profile.profileText, shortlist, MAX_LLM_CALLS_PER_SEARCH);

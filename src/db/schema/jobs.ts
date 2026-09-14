@@ -19,6 +19,11 @@ export const jobs = pgTable(
 
     title: text("title").notNull(),
     description: text("description"),
+    // Sanitized subset of the original posting markup (headings, lists,
+    // emphasis, links) — see sanitizeDescriptionHtml in pipeline/normalize.ts.
+    // `description` above stays plain text: it feeds content_hash/embeddings/
+    // summarization, none of which should care about formatting-only diffs.
+    descriptionHtml: text("description_html"),
 
     location: text("location"),
     workplaceType: text("workplace_type"),

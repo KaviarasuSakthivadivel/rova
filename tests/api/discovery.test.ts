@@ -174,4 +174,47 @@ describe("discovery admin routes", () => {
 
     await db.delete(companyDiscoveryCandidates).where(eq(companyDiscoveryCandidates.name, name));
   });
+
+  it("lists tracked companies and can deactivate/reactivate one without deleting it", async () => {
+    const [company] = await db
+      .insert(companies)
+      .values({
+        name: `Tracked Co ${marker}`,
+        slug: `tracked-co-${marker}`,
+        ats: "greenhouse",
+        atsIdentifier: `tracked-co-${marker}`,
+        domain: "example.com",
+      })
+      .returning({ id: companies.id });
+
+    const listRes = await app.request("/api/admin/companies", { headers: { Cookie: cookie } });
+    expect(listRes.status).toBe(200);
+    const { companies: listed } = await listRes.json();
+    const found = listed.find((c: { id: string }) => c.id === company!.id);
+    expect(found).toBeTruthy();
+    expect(found.active).toBe(true);
+    expect(found.domain).toBe("example.com");
+
+    const deactivateRes = await app.request(`/api/admin/companies/${company!.id}/deactivate`, {
+      method: "POST",
+      headers: { Cookie: cookie },
+    });
+    expect(deactivateRes.status).toBe(200);
+    expect((await deactivateRes.json()).company.active).toBe(false);
+
+    const reactivateRes = await app.request(`/api/admin/companies/${company!.id}/reactivate`, {
+      method: "POST",
+      headers: { Cookie: cookie },
+    });
+    expect(reactivateRes.status).toBe(200);
+    expect((await reactivateRes.json()).company.active).toBe(true);
+
+    const notFoundRes = await app.request(`/api/admin/companies/${crypto.randomUUID()}/deactivate`, {
+      method: "POST",
+      headers: { Cookie: cookie },
+    });
+    expect(notFoundRes.status).toBe(404);
+
+    await db.delete(companies).where(eq(companies.id, company!.id));
+  });
 });

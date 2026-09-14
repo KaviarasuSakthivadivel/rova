@@ -1,6 +1,21 @@
 #!/usr/bin/env bun
 
+// Must run before any command branch below — several of them (not just
+// `serve`) make LLM calls that go through logGeneration().
+import { flushObservability } from "@/observability/instrumentation";
+
 const [command, ...rest] = Bun.argv.slice(2);
+
+// Every command branch below exits explicitly (rather than letting main()
+// return and fall off the end) since a lingering DB connection pool would
+// otherwise keep the process alive — routing all of those through this
+// gives logGeneration()'s pending spans a chance to actually reach
+// Langfuse first, which a bare process.exit() would otherwise cut off
+// mid-flight.
+async function exitAfterFlush(code: number): Promise<never> {
+  await flushObservability();
+  process.exit(code);
+}
 
 async function main() {
   switch (command) {
@@ -19,7 +34,7 @@ async function main() {
     case "migrate": {
       const { runMigrations } = await import("@/db/migrate");
       await runMigrations();
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
@@ -27,35 +42,35 @@ async function main() {
       const { seedCompanies } = await import("@/pipeline/seed");
       const csvPath = rest[0] ?? "./scripts/companies.seed.csv";
       await seedCompanies(csvPath);
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
     case "crawl": {
       const { runCrawl } = await import("@/pipeline/crawl");
       await runCrawl();
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
     case "digest": {
       const { runDigest } = await import("@/pipeline/digest");
       await runDigest();
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
     case "enrich": {
       const { runEnrichment } = await import("@/pipeline/enrich");
       await runEnrichment();
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
     case "summarize": {
       const { runSummarization } = await import("@/pipeline/summarize");
       await runSummarization();
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
@@ -83,7 +98,7 @@ async function main() {
           `[rank] ${email}: ranked=${result.ranked.length} scored=${result.scoredCount} cached=${result.cachedCount} cost=${cost} ${result.reason ?? ""}`.trim(),
         );
       }
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
@@ -91,7 +106,8 @@ async function main() {
       const email = rest[0];
       if (!email) {
         console.error("Usage: rova make-admin <email>");
-        process.exit(1);
+        await exitAfterFlush(1);
+        return;
       }
       const { db } = await import("@/db/client");
       const { users } = await import("@/db/schema");
@@ -105,24 +121,25 @@ async function main() {
 
       if (!user) {
         console.error(`No user found with email "${email}"`);
-        process.exit(1);
+        await exitAfterFlush(1);
+        return;
       }
       console.log(`[make-admin] ${user.email} is now an admin`);
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
     case "discover": {
       if (rest.length === 0) {
         console.error('Usage: rova discover "Company One" "Company Two" ...');
-        process.exit(1);
+        await exitAfterFlush(1);
       }
       const { runDiscovery } = await import("@/pipeline/discover");
       const results = await runDiscovery(rest);
       for (const r of results) {
         console.log(`[discover] ${r.companyName}: matched=${r.matched} source=${r.source} ${r.reason ?? ""}`.trim());
       }
-      process.exit(0);
+      await exitAfterFlush(0);
       break;
     }
 
@@ -144,12 +161,12 @@ async function main() {
           "  make-admin  grant a user admin access (required for /crawl-health, /discovery)",
         ].join("\n"),
       );
-      process.exit(command ? 1 : 0);
+      await exitAfterFlush(command ? 1 : 0);
     }
   }
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(error);
-  process.exit(1);
+  await exitAfterFlush(1);
 });

@@ -1,30 +1,43 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #f6f6f3;
+  /* Light theme — a full reversal of the earlier dark pass, matching a
+     reference product screenshot (wide labeled sidebar, white cards on a
+     faint gray canvas). --color-rail is now the sidebar's own surface,
+     not a dark contrast rail — it stays a distinct token (rather than
+     reusing --color-panel) because the sidebar and the content area are
+     visually distinguished by a border, not a shade difference, and
+     giving it its own token keeps that a one-line change if it ever
+     needs to differ again. */
+  --color-bg: #f7f7f8;
   --color-panel: #ffffff;
-  --color-panel-soft: #fbfbf9;
+  --color-panel-soft: #f2f2f4;
+  --color-rail: #ffffff;
 
-  --color-ink: #1f2320;
-  --color-ink-muted: #5c6259;
-  --color-ink-faint: #9a9e94;
+  --color-ink: #111217;
+  --color-ink-muted: #6b6d76;
+  --color-ink-faint: #7d7f88;
 
-  --color-line: #e6e5df;
+  --color-line: #e6e6e9;
 
-  /* Emerald as the one confident color — new hue vs. every earlier pass
-     (rust, navy, sapphire, violet). Used generously, not just on buttons. */
-  --color-brand: #047857;
-  --color-brand-dark: #035c44;
-  --color-brand-soft: #e4f3ec;
-  --color-brand-ink: #033d2e;
+  /* Same violet hue as the dark pass, re-tuned for light surfaces:
+     --color-brand doubles as button-fill (paired with white text, ~5.7:1
+     contrast) and as plain text on light panels (same ratio, contrast is
+     symmetric) — one token covers both here, unlike the dark theme where
+     those needed to diverge. --color-brand-ink is a touch darker, for
+     text on top of --color-brand-soft's tinted fill. */
+  --color-brand: #7c3aed;
+  --color-brand-dark: #6d28d9;
+  --color-brand-soft: #f2edfe;
+  --color-brand-ink: #6d28d9;
 
   --color-gold: #b45309;
   --color-gold-soft: #fef3e2;
   --color-red: #be123c;
   --color-red-soft: #fde8ed;
 
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -33,5 +46,106 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 15.5px;
+  font-weight: 500;
   line-height: 1.55;
+}
+
+/* Sanitized job-posting HTML (JobDetail.tsx) — hand-rolled instead of a
+   typography plugin since the allowed tag set is small and fixed (see
+   sanitizeDescriptionHtml in src/pipeline/normalize.ts). */
+.job-description-rich h1,
+.job-description-rich h2,
+.job-description-rich h3,
+.job-description-rich h4,
+.job-description-rich h5,
+.job-description-rich h6 {
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.job-description-rich h1 {
+  font-size: 1.15em;
+}
+.job-description-rich h2,
+.job-description-rich h3 {
+  font-size: 1.05em;
+}
+.job-description-rich h4,
+.job-description-rich h5,
+.job-description-rich h6 {
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.job-description-rich > :first-child {
+  margin-top: 0;
+}
+.job-description-rich p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.job-description-rich ul,
+.job-description-rich ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.75em;
+  padding-left: 1.25em;
+}
+.job-description-rich ul {
+  list-style: disc;
+}
+.job-description-rich ol {
+  list-style: decimal;
+}
+.job-description-rich li {
+  margin-top: 0.3em;
+}
+.job-description-rich li::marker {
+  color: var(--color-brand-ink);
+}
+.job-description-rich strong,
+.job-description-rich b {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.job-description-rich a {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.job-description-rich blockquote {
+  margin: 0.75em 0;
+  padding-left: 0.9em;
+  border-left: 2px solid var(--color-line);
+  color: var(--color-ink-faint);
+}
+.job-description-rich hr {
+  margin: 1.25em 0;
+  border: none;
+  border-top: 1px solid var(--color-line);
+}
+
+/* PacketDetail.tsx's "Download pack" — window.print() scoped to just the
+   packet content via visibility isolation, so the icon rail/search bar/etc.
+   never show up in the printed output. Dark-theme textareas also get
+   flattened to plain black-on-white for a printable page. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .packet-print-area,
+  .packet-print-area * {
+    visibility: visible;
+  }
+  .packet-print-area {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    color: #000;
+  }
+  .packet-print-area textarea {
+    background: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+  }
 }

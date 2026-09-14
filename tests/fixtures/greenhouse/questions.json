@@ -1,0 +1,37 @@
+{
+  "questions": [
+    {
+      "description": null,
+      "label": "First Name",
+      "required": true,
+      "fields": [{ "name": "first_name", "type": "input_text", "values": [] }]
+    },
+    {
+      "description": null,
+      "label": "Resume/CV",
+      "required": true,
+      "fields": [
+        { "name": "resume", "type": "input_file", "values": [] },
+        { "name": "resume_text", "type": "textarea", "values": [] }
+      ]
+    },
+    {
+      "description": "Please ensure to provide either your LinkedIn profile or Resume, we require at least one of the two.",
+      "label": "LinkedIn Profile",
+      "required": false,
+      "fields": [{ "name": "question_8581812008", "type": "input_text", "values": [] }]
+    },
+    {
+      "description": null,
+      "label": "Are you currently located in SF/NYC or open to relocating?",
+      "required": true,
+      "fields": [{ "name": "question_8581812009", "type": "textarea", "values": [] }]
+    },
+    {
+      "description": null,
+      "label": "How did you hear about us?",
+      "required": false,
+      "fields": [{ "name": "question_8581812010", "type": "single_select", "values": [{ "label": "Job Board", "value": 1 }] }]
+    }
+  ]
+}

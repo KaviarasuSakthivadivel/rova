@@ -1,9 +1,12 @@
 import { env } from "@/config";
+import { logGeneration } from "@/observability/langfuse";
 import { SummarizationNotConfiguredError } from "./errors";
 import { SUMMARIZE_SYSTEM_PROMPT, type SummarizeJobInput, summarizeUserPrompt } from "./prompt";
 
 interface OllamaChatResponse {
   message: { content: string };
+  prompt_eval_count?: number;
+  eval_count?: number;
 }
 
 /** Local summarization via Ollama's /api/chat — no API key, no per-job
@@ -40,5 +43,18 @@ export async function summarizeJob(input: SummarizeJobInput): Promise<string> {
   }
 
   const data = (await response.json()) as OllamaChatResponse;
-  return data.message.content.trim();
+  const summary = data.message.content.trim();
+
+  logGeneration({
+    name: "summarize-job",
+    provider: "ollama",
+    model: env.OLLAMA_CHAT_MODEL,
+    input: { title: input.title, companyName: input.companyName },
+    output: summary,
+    inputTokens: data.prompt_eval_count ?? 0,
+    outputTokens: data.eval_count ?? 0,
+    error: summary ? undefined : "empty response",
+  });
+
+  return summary;
 }

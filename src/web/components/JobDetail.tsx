@@ -1,4 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { CompanyLogo } from "@/web/components/CompanyLogo";
 import { api } from "@/web/lib/api";
 import type { JobResult } from "@/web/lib/types";
 
@@ -10,7 +12,7 @@ function timeAgo(iso: string): string {
 }
 
 export function JobDetail({ result, searchKey }: { result: JobResult; searchKey: unknown[] }) {
-  const { job, companyName, action, score, reasons } = result;
+  const { job, companyName, companyDomain, action, score, reasons } = result;
   const queryClient = useQueryClient();
 
   const actMutation = useMutation({
@@ -18,16 +20,33 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
     onSuccess: () => queryClient.invalidateQueries({ queryKey: searchKey }),
   });
 
+  // 404 just means "not added yet" — not a real error, so don't retry it.
+  const packetQuery = useQuery({
+    queryKey: ["packet", job.id],
+    queryFn: () => api.getPacket(job.id),
+    retry: false,
+    throwOnError: false,
+  });
+  const inPipeline = packetQuery.isSuccess;
+
+  const addToPipelineMutation = useMutation({
+    mutationFn: () => api.addToPipeline(job.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["packet", job.id] }),
+  });
+
   return (
     <div className="mx-auto max-w-2xl px-8 py-8">
       <div className="flex items-start justify-between gap-6">
-        <div>
-          <h2 className="text-2xl font-extrabold text-ink">{job.title}</h2>
-          <p className="mt-1.5 text-ink-muted">
-            <span className="font-bold text-ink">{companyName}</span>
-            {job.location ? ` — ${job.location}` : ""}
-          </p>
-          <p className="mt-1 text-xs text-ink-faint">{timeAgo(job.firstSeenAt)}</p>
+        <div className="flex items-start gap-3.5">
+          <CompanyLogo name={companyName} domain={companyDomain} size="lg" />
+          <div>
+            <h2 className="text-2xl font-extrabold text-ink">{job.title}</h2>
+            <p className="mt-1.5 text-ink-muted">
+              <span className="font-bold text-ink">{companyName}</span>
+              {job.location ? ` — ${job.location}` : ""}
+            </p>
+            <p className="mt-1 text-xs text-ink-faint">{timeAgo(job.firstSeenAt)}</p>
+          </div>
         </div>
         {typeof score === "number" && (
           <div className="flex shrink-0 flex-col items-center rounded-2xl bg-brand-soft px-4 py-3">
@@ -66,6 +85,23 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
         >
           Dismiss
         </button>
+
+        {action === "applied" ? (
+          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-bold text-brand-ink">✓ Applied</span>
+        ) : inPipeline ? (
+          <Link to={`/pipeline/${job.id}`} className="rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line">
+            In pipeline →
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled={addToPipelineMutation.isPending}
+            onClick={() => addToPipelineMutation.mutate()}
+            className="rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line disabled:opacity-50"
+          >
+            + Add to pipeline
+          </button>
+        )}
       </div>
 
       {reasons && reasons.length > 0 && (
@@ -89,10 +125,19 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
         </div>
       )}
 
-      {job.description && (
+      {(job.descriptionHtml || job.description) && (
         <div className="mt-6">
           <p className="text-xs font-bold uppercase tracking-wide text-ink-faint">Full description</p>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-muted">{job.description}</p>
+          {job.descriptionHtml ? (
+            <div
+              className="job-description-rich mt-2 text-sm leading-relaxed text-ink-muted"
+              // Sanitized server-side (allowlisted tags only) before storage —
+              // see sanitizeDescriptionHtml in src/pipeline/normalize.ts.
+              dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
+            />
+          ) : (
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-muted">{job.description}</p>
+          )}
         </div>
       )}
     </div>

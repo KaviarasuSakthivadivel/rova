@@ -57,6 +57,27 @@
       "when": 1789115182384,
       "tag": "0007_military_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789140470050,
+      "tag": "0008_remarkable_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789153869843,
+      "tag": "0009_fat_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789162873635,
+      "tag": "0010_luxuriant_sabretooth",
+      "breakpoints": true
     }
   ]
 }

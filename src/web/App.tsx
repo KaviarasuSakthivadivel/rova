@@ -6,6 +6,8 @@ import { CrawlHealth } from "@/web/pages/CrawlHealth";
 import { Dashboard } from "@/web/pages/Dashboard";
 import { Discovery } from "@/web/pages/Discovery";
 import { Login } from "@/web/pages/Login";
+import { PacketDetail } from "@/web/pages/PacketDetail";
+import { Pipeline } from "@/web/pages/Pipeline";
 import { Profile } from "@/web/pages/Profile";
 import { Signup } from "@/web/pages/Signup";
 
@@ -53,6 +55,22 @@ export function App() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pipeline"
+        element={
+          <ProtectedRoute>
+            <Pipeline />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pipeline/:jobId"
+        element={
+          <ProtectedRoute>
+            <PacketDetail />
           </ProtectedRoute>
         }
       />

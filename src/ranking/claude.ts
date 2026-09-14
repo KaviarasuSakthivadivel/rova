@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/config";
+import { logGeneration } from "@/observability/langfuse";
 
 export class RankingNotConfiguredError extends Error {
   constructor() {
@@ -74,6 +75,9 @@ function isJobScore(value: unknown): value is JobScore {
   );
 }
 
+const userPrompt = (input: RankJobInput) =>
+  `Candidate profile:\n${input.profileText}\n\nJob posting:\nTitle: ${input.jobTitle}\nCompany: ${input.companyName}\nLocation: ${input.location ?? "unspecified"}\nDescription: ${input.description ?? "(no description)"}`;
+
 export async function rankJob(input: RankJobInput): Promise<RankJobResult> {
   const anthropic = getClient();
 
@@ -85,41 +89,51 @@ export async function rankJob(input: RankJobInput): Promise<RankJobResult> {
     // and latency down across a shortlist run.
     output_config: { effort: "low", format: { type: "json_schema", schema: SCORE_JSON_SCHEMA } },
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Candidate profile:\n${input.profileText}\n\nJob posting:\nTitle: ${input.jobTitle}\nCompany: ${input.companyName}\nLocation: ${input.location ?? "unspecified"}\nDescription: ${input.description ?? "(no description)"}`,
-      },
-    ],
+    messages: [{ role: "user", content: userPrompt(input) }],
   });
 
   const usage = { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
 
+  let score: JobScore | null = null;
+  let error: string | undefined;
+
   if (response.stop_reason === "refusal") {
     console.warn("[ranking] Claude declined to score a job (refusal) — skipping it");
-    return { score: null, ...usage };
+    error = "refusal";
+  } else {
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      console.warn("[ranking] no text block in Claude's response — skipping this job");
+      error = "no text block in response";
+    } else {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(textBlock.text);
+      } catch {
+        console.warn("[ranking] Claude's response wasn't valid JSON — skipping this job");
+        error = "response wasn't valid JSON";
+      }
+      if (!error && !isJobScore(parsed)) {
+        console.warn("[ranking] Claude's response didn't match the expected shape — skipping this job");
+        error = "response didn't match the expected shape";
+      } else if (!error) {
+        score = parsed as JobScore;
+      }
+    }
   }
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    console.warn("[ranking] no text block in Claude's response — skipping this job");
-    return { score: null, ...usage };
-  }
+  logGeneration({
+    name: "rank-job",
+    provider: "claude",
+    model: env.ANTHROPIC_MODEL,
+    input: { profileText: input.profileText, jobTitle: input.jobTitle, companyName: input.companyName },
+    output: score,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    error,
+  });
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(textBlock.text);
-  } catch {
-    console.warn("[ranking] Claude's response wasn't valid JSON — skipping this job");
-    return { score: null, ...usage };
-  }
-
-  if (!isJobScore(parsed)) {
-    console.warn("[ranking] Claude's response didn't match the expected shape — skipping this job");
-    return { score: null, ...usage };
-  }
-
-  return { score: parsed, ...usage };
+  return { score, ...usage };
 }
 
 // $/1M tokens, first-party API rates — see PRD.md / claude-api skill pricing

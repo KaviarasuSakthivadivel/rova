@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/config";
+import { logGeneration } from "@/observability/langfuse";
 import { SummarizationNotConfiguredError } from "./errors";
 import { SUMMARIZE_SYSTEM_PROMPT, type SummarizeJobInput, summarizeUserPrompt } from "./prompt";
 
@@ -22,5 +23,18 @@ export async function summarizeJob(input: SummarizeJobInput): Promise<string> {
   });
 
   const textBlock = response.content.find((b) => b.type === "text");
-  return textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
+  const summary = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
+
+  logGeneration({
+    name: "summarize-job",
+    provider: "claude",
+    model: env.ANTHROPIC_MODEL,
+    input: { title: input.title, companyName: input.companyName },
+    output: summary,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    error: summary ? undefined : "no text block in response",
+  });
+
+  return summary;
 }
