@@ -61,7 +61,7 @@ export function JobCard({
         </div>
       </div>
 
-      <div className="min-w-0">
+      <div className="w-full min-w-0">
         <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink">
           {job.title}
           {isNew && (
@@ -70,7 +70,7 @@ export function JobCard({
             </span>
           )}
         </p>
-        <p className="mt-0.5 truncate text-xs text-ink-muted">
+        <p className="mt-0.5 line-clamp-2 text-xs text-ink-muted">
           {companyName}
           {job.location ? ` · ${job.location}` : ""}
         </p>
