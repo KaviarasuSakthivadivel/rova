@@ -61,7 +61,7 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
           href={job.jobUrl}
           target="_blank"
           rel="noreferrer"
-          className="rounded-full bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark"
+          className="rounded-md bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark"
         >
           View original posting ↗
         </a>
@@ -69,7 +69,7 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("saved")}
-          className={`rounded-full px-4 py-2 text-sm font-bold ${
+          className={`rounded-md px-4 py-2 text-sm font-bold ${
             action === "saved" ? "bg-gold-soft text-gold" : "bg-panel-soft text-ink-muted hover:bg-line"
           }`}
         >
@@ -79,7 +79,7 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
           type="button"
           disabled={actMutation.isPending}
           onClick={() => actMutation.mutate("dismissed")}
-          className={`rounded-full px-4 py-2 text-sm font-bold ${
+          className={`rounded-md px-4 py-2 text-sm font-bold ${
             action === "dismissed" ? "bg-red-soft text-red" : "bg-panel-soft text-ink-muted hover:bg-line"
           }`}
         >
@@ -89,7 +89,7 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
         {action === "applied" ? (
           <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-bold text-brand-ink">✓ Applied</span>
         ) : inPipeline ? (
-          <Link to={`/pipeline/${job.id}`} className="rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line">
+          <Link to={`/pipeline/${job.id}`} className="rounded-md bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line">
             In pipeline →
           </Link>
         ) : (
@@ -97,7 +97,7 @@ export function JobDetail({ result, searchKey }: { result: JobResult; searchKey:
             type="button"
             disabled={addToPipelineMutation.isPending}
             onClick={() => addToPipelineMutation.mutate()}
-            className="rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line disabled:opacity-50"
+            className="rounded-md bg-panel-soft px-4 py-2 text-sm font-bold text-ink-muted hover:bg-line disabled:opacity-50"
           >
             + Add to pipeline
           </button>

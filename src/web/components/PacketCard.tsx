@@ -66,7 +66,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
             {(packet.stage === "ready" || packet.stage === "applied") && (
               <Link
                 to={`/pipeline/${packet.jobId}`}
-                className="block w-full rounded-full bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink-muted hover:bg-line"
+                className="block w-full rounded-md bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink-muted hover:bg-line"
               >
                 Review Pack
               </Link>
@@ -79,7 +79,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
             type="button"
             disabled={generateMutation.isPending}
             onClick={() => generateMutation.mutate()}
-            className="w-full rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+            className="w-full rounded-md bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
           >
             Generate Pack…
           </button>
@@ -101,7 +101,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
               type="button"
               disabled={generateMutation.isPending}
               onClick={() => generateMutation.mutate()}
-              className="w-full rounded-full bg-panel-soft px-3 py-1.5 text-xs font-bold text-ink hover:bg-line disabled:opacity-50"
+              className="w-full rounded-md bg-panel-soft px-3 py-1.5 text-xs font-bold text-ink hover:bg-line disabled:opacity-50"
             >
               Retry
             </button>
@@ -112,7 +112,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
           <div className="flex gap-2">
             <Link
               to={`/pipeline/${packet.jobId}`}
-              className="flex-1 rounded-full bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink hover:bg-line"
+              className="flex-1 rounded-md bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink hover:bg-line"
             >
               Review Pack
             </Link>
@@ -120,7 +120,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
               type="button"
               disabled={applyMutation.isPending}
               onClick={() => applyMutation.mutate()}
-              className="flex-1 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+              className="flex-1 rounded-md bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
             >
               Mark Applied
             </button>
@@ -130,7 +130,7 @@ export function PacketCard({ summary }: { summary: ApplicationPacketSummary }) {
         {packet.stage === "applied" && (
           <Link
             to={`/pipeline/${packet.jobId}`}
-            className="block w-full rounded-full bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink-muted hover:bg-line"
+            className="block w-full rounded-md bg-panel-soft px-3 py-1.5 text-center text-xs font-bold text-ink-muted hover:bg-line"
           >
             Review Pack
           </Link>

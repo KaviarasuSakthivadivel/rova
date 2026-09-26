@@ -68,7 +68,7 @@ export function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-full bg-brand py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
+              className="w-full rounded-md bg-brand py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
             >
               {isSubmitting ? "Logging in…" : "Log in"}
             </button>

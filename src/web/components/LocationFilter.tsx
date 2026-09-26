@@ -74,7 +74,7 @@ export function LocationFilter({
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        className="w-36 rounded-full bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+        className="w-36 rounded-md bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
       />
       {open && suggestions.length > 0 && (
         <div className="absolute top-full left-0 z-30 mt-1.5 max-h-64 w-64 overflow-y-auto rounded-xl border border-line bg-panel p-1.5 shadow-xl">

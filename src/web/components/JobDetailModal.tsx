@@ -24,7 +24,7 @@ export function JobDetailModal({ result, searchKey, onClose }: { result: JobResu
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-panel-soft px-3 py-1 text-xs font-bold text-ink-muted hover:bg-line"
+            className="rounded-md bg-panel-soft px-3 py-1 text-xs font-bold text-ink-muted hover:bg-line"
           >
             ✕ Close
           </button>

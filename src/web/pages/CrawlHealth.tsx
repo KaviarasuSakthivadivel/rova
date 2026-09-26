@@ -43,7 +43,7 @@ export function CrawlHealth() {
           type="button"
           disabled={triggerMutation.isPending}
           onClick={() => triggerMutation.mutate()}
-          className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+          className="rounded-md bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {triggerMutation.isPending ? "Starting…" : "Run crawl now"}
         </button>

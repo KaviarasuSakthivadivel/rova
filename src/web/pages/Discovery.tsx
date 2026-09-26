@@ -81,7 +81,7 @@ export function Discovery() {
         <button
           type="submit"
           disabled={discoverMutation.isPending}
-          className="rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+          className="rounded-md bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {discoverMutation.isPending ? "Searching…" : "Discover"}
         </button>

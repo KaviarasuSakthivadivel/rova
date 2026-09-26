@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import indexHtml from "@/web/index.html";
+import faviconAsset from "@/web/favicon.svg" with { type: "file" };
 import type { AuthEnv } from "@/auth/middleware";
 import { attachSession } from "@/auth/middleware";
 import { adminRoutes } from "@/api/admin";
@@ -39,6 +40,7 @@ export async function serve() {
     port: env.PORT,
     routes: {
       "/api/*": (req, bunServer) => app.fetch(req, bunServer),
+      "/favicon.svg": new Response(Bun.file(faviconAsset), { headers: { "Content-Type": "image/svg+xml" } }),
       "/*": indexHtml,
     },
     development: env.NODE_ENV !== "production" && { hmr: true, console: true },

@@ -142,7 +142,7 @@ export function Profile() {
 
                 uploadMutation.mutate(file);
               }}
-              className="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-brand-ink"
+              className="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:rounded-md file:border-0 file:bg-brand-soft file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-brand-ink"
             />
             <p className="mt-1.5 text-xs text-ink-faint">PDF or .txt, up to 5MB.</p>
 
@@ -204,7 +204,7 @@ export function Profile() {
                     type="button"
                     onClick={() => disconnectCodexMutation.mutate()}
                     disabled={disconnectCodexMutation.isPending}
-                    className="mt-3 rounded-full bg-panel-soft px-4 py-2 text-xs font-bold text-ink-muted transition-colors hover:bg-red-soft hover:text-red disabled:opacity-50"
+                    className="mt-3 rounded-md bg-panel-soft px-4 py-2 text-xs font-bold text-ink-muted transition-colors hover:bg-red-soft hover:text-red disabled:opacity-50"
                   >
                     {disconnectCodexMutation.isPending ? "Disconnecting…" : "Disconnect"}
                   </button>
@@ -220,7 +220,7 @@ export function Profile() {
                     type="button"
                     onClick={() => connectCodexMutation.mutate()}
                     disabled={connectCodexMutation.isPending || codexStatusQuery.data.connecting}
-                    className="mt-3 rounded-full bg-brand-soft px-4 py-2 text-xs font-bold text-brand-ink transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
+                    className="mt-3 rounded-md bg-brand-soft px-4 py-2 text-xs font-bold text-brand-ink transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
                   >
                     {codexStatusQuery.data.connecting ? "Connecting…" : "Connect ChatGPT"}
                   </button>
@@ -248,7 +248,7 @@ export function Profile() {
           <button
             type="submit"
             disabled={saveMutation.isPending || uploadMutation.isPending}
-            className="rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
+            className="rounded-md bg-brand px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
           >
             {saveMutation.isPending ? "Saving…" : "Save profile"}
           </button>

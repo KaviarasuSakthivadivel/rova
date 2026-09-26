@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="flex shrink-0 items-center gap-1.5 rounded-full bg-panel-soft px-3 py-1 text-xs font-bold text-ink-muted hover:bg-line"
+      className="flex shrink-0 items-center gap-1.5 rounded-md bg-panel-soft px-3 py-1 text-xs font-bold text-ink-muted hover:bg-line"
     >
       {copied ? <Icon path={ICON_PATHS.check} className="h-3.5 w-3.5" /> : <Icon path={ICON_PATHS.copy} className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Copy"}
@@ -161,7 +161,7 @@ export function PacketDetail() {
             type="button"
             disabled={generateMutation.isPending || generating}
             onClick={() => generateMutation.mutate(true)}
-            className="flex items-center gap-1.5 rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line disabled:opacity-50"
           >
             <Icon path={ICON_PATHS.refresh} />
             {generating ? "Generating…" : "Regenerate pack"}
@@ -170,7 +170,7 @@ export function PacketDetail() {
             <a
               href={`/api/applications/${job.id}/resume.pdf`}
               download
-              className="flex items-center gap-1.5 rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line"
+              className="flex items-center gap-1.5 rounded-md bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line"
             >
               <Icon path={ICON_PATHS.download} />
               Resume PDF
@@ -180,7 +180,7 @@ export function PacketDetail() {
             <a
               href={`/api/applications/${job.id}/cover-letter.pdf`}
               download
-              className="flex items-center gap-1.5 rounded-full bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line"
+              className="flex items-center gap-1.5 rounded-md bg-panel-soft px-4 py-2 text-sm font-bold text-ink hover:bg-line"
             >
               <Icon path={ICON_PATHS.download} />
               Cover Letter PDF
@@ -194,7 +194,7 @@ export function PacketDetail() {
           href={job.applyUrl ?? job.jobUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-brand-dark"
+          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-brand px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-brand-dark"
         >
           Apply on {companyName}
           <Icon path={ICON_PATHS.externalLink} />
@@ -206,7 +206,7 @@ export function PacketDetail() {
             type="button"
             disabled={applyMutation.isPending}
             onClick={() => applyMutation.mutate()}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-panel-soft px-4 py-2 text-xs font-bold text-ink-muted hover:bg-line disabled:opacity-50"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md bg-panel-soft px-4 py-2 text-xs font-bold text-ink-muted hover:bg-line disabled:opacity-50"
           >
             <Icon path={ICON_PATHS.check} className="h-3.5 w-3.5" />
             Mark as applied
@@ -279,7 +279,7 @@ export function PacketDetail() {
               type="button"
               disabled={freeformMutation.isPending || !freeformQuestion.trim()}
               onClick={() => freeformMutation.mutate(freeformQuestion.trim())}
-              className="mt-2 rounded-full bg-brand px-4 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+              className="mt-2 rounded-md bg-brand px-4 py-1.5 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
             >
               {freeformMutation.isPending ? "Drafting…" : "Draft answer"}
             </button>

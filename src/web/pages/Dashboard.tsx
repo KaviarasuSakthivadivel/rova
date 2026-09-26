@@ -145,7 +145,7 @@ export function Dashboard() {
             value={q}
             disabled={semantic}
             onChange={(e) => setQ(e.target.value)}
-            className="min-w-[160px] flex-1 rounded-full bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-40"
+            className="min-w-[160px] flex-1 rounded-md bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-40"
           />
           <LocationFilter
             value={location}
@@ -165,7 +165,7 @@ export function Dashboard() {
           <select
             value={postedWithinDays ?? ""}
             onChange={(e) => setPostedWithinDays(e.target.value ? Number(e.target.value) : undefined)}
-            className="rounded-full bg-panel-soft px-3 py-1.5 text-sm text-ink-muted focus:outline-none"
+            className="rounded-md bg-panel-soft px-3 py-1.5 text-sm text-ink-muted focus:outline-none"
           >
             {POSTED_WITHIN_OPTIONS.map((opt) => (
               <option key={opt.label} value={opt.days ?? ""}>
@@ -177,25 +177,25 @@ export function Dashboard() {
             <input type="checkbox" checked={semantic} onChange={(e) => setSemantic(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
             Match to me
           </label>
-          <button type="submit" className="rounded-full bg-brand px-4 py-1.5 text-sm font-bold text-white hover:bg-brand-dark">
+          <button type="submit" className="rounded-md bg-brand px-4 py-1.5 text-sm font-bold text-white hover:bg-brand-dark">
             Search
           </button>
           <button
             type="button"
             onClick={() => setFiltersOpen((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold ${
+            className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-bold ${
               filtersOpen || activeFilterCount > 0 ? "bg-brand-soft text-brand-ink" : "bg-panel-soft text-ink-muted hover:bg-line"
             }`}
           >
             Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </button>
 
-          <div className="ml-auto flex shrink-0 gap-1 rounded-full bg-panel-soft p-1">
+          <div className="ml-auto flex shrink-0 gap-1 rounded-md bg-panel-soft p-1">
             <button
               type="button"
               onClick={() => setView("list")}
               aria-label="List view"
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${view === "list" ? "bg-brand text-white" : "text-ink-faint hover:text-ink"}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-bold ${view === "list" ? "bg-brand text-white" : "text-ink-faint hover:text-ink"}`}
             >
               ☰ List
             </button>
@@ -203,7 +203,7 @@ export function Dashboard() {
               type="button"
               onClick={() => setView("grid")}
               aria-label="Grid view"
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${view === "grid" ? "bg-brand text-white" : "text-ink-faint hover:text-ink"}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-bold ${view === "grid" ? "bg-brand text-white" : "text-ink-faint hover:text-ink"}`}
             >
               ⊞ Grid
             </button>

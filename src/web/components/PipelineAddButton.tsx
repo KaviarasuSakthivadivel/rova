@@ -23,7 +23,7 @@ export function PipelineAddButton({
         onClick={(e) => e.stopPropagation()}
         title="In your pipeline"
         aria-label="In your pipeline"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand-ink"
       >
         <Icon path={ICONS.inPipeline} className="h-3.5 w-3.5" />
       </Link>
@@ -40,7 +40,7 @@ export function PipelineAddButton({
         e.stopPropagation();
         onAdd();
       }}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-panel-soft text-ink-faint transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-panel-soft text-ink-faint transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
     >
       <Icon path={ICONS.addToPipeline} className="h-3.5 w-3.5" />
     </button>
