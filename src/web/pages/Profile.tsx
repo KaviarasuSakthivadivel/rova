@@ -8,6 +8,11 @@ const fieldInput = "mt-1 w-full rounded-xl bg-panel-soft px-3.5 py-2.5 text-sm t
 export function Profile() {
   const queryClient = useQueryClient();
   const profileQuery = useQuery({ queryKey: ["profile"], queryFn: () => api.getProfile() });
+  const codexStatusQuery = useQuery({
+    queryKey: ["codex-status"],
+    queryFn: () => api.getCodexStatus(),
+    refetchInterval: (query) => (query.state.data?.connecting ? 2000 : false),
+  });
 
   const [profileText, setProfileText] = useState("");
   const [resumeText, setResumeText] = useState("");
@@ -71,6 +76,19 @@ export function Profile() {
       setStatus("error");
       setError(err instanceof ApiError ? err.message : "Failed to save profile");
     },
+  });
+
+  const connectCodexMutation = useMutation({
+    mutationFn: () => api.connectCodex(),
+    onSuccess: (data) => {
+      window.open(data.authorizeUrl, "_blank");
+      queryClient.invalidateQueries({ queryKey: ["codex-status"] });
+    },
+  });
+
+  const disconnectCodexMutation = useMutation({
+    mutationFn: () => api.disconnectCodex(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["codex-status"] }),
   });
 
   return (
@@ -173,6 +191,48 @@ export function Profile() {
               Open to fully remote roles
             </label>
           </div>
+
+          {codexStatusQuery.data?.active && (
+            <div className="rounded-2xl bg-panel p-6 shadow-sm">
+              <p className={fieldLabel}>Packet generation</p>
+              {codexStatusQuery.data.connected ? (
+                <>
+                  <p className="mt-1.5 text-sm text-ink-muted">
+                    Connected to ChatGPT{codexStatusQuery.data.accountEmail ? ` as ${codexStatusQuery.data.accountEmail}` : ""}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => disconnectCodexMutation.mutate()}
+                    disabled={disconnectCodexMutation.isPending}
+                    className="mt-3 rounded-full bg-panel-soft px-4 py-2 text-xs font-bold text-ink-muted transition-colors hover:bg-red-soft hover:text-red disabled:opacity-50"
+                  >
+                    {disconnectCodexMutation.isPending ? "Disconnecting…" : "Disconnect"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1.5 text-sm text-ink-muted">
+                    {codexStatusQuery.data.connecting
+                      ? "Waiting for sign-in to finish in the opened tab…"
+                      : "Generate packets against your own ChatGPT Plus/Pro subscription instead of an API key."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => connectCodexMutation.mutate()}
+                    disabled={connectCodexMutation.isPending || codexStatusQuery.data.connecting}
+                    className="mt-3 rounded-full bg-brand-soft px-4 py-2 text-xs font-bold text-brand-ink transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
+                  >
+                    {codexStatusQuery.data.connecting ? "Connecting…" : "Connect ChatGPT"}
+                  </button>
+                </>
+              )}
+              {connectCodexMutation.isError && (
+                <p className="mt-2 text-xs text-red">
+                  {connectCodexMutation.error instanceof ApiError ? connectCodexMutation.error.message : "Couldn't start the connection"}
+                </p>
+              )}
+            </div>
+          )}
 
           {status === "saved" && <p className="rounded-xl bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">Saved.</p>}
           {status === "saved-no-embedding" && (

@@ -9,6 +9,7 @@ import { authRoutes } from "@/api/auth";
 import { discoveryRoutes } from "@/api/discovery";
 import { jobsRoutes } from "@/api/jobs";
 import { profileRoutes } from "@/api/profile";
+import { providersRoutes } from "@/api/providers";
 import { env } from "@/config";
 
 export function createApp() {
@@ -22,6 +23,7 @@ export function createApp() {
   app.route("/api/profile", profileRoutes);
   app.route("/api/jobs", jobsRoutes);
   app.route("/api/applications", applicationsRoutes);
+  app.route("/api/providers", providersRoutes);
   app.route("/api/admin", adminRoutes);
   app.route("/api/admin", discoveryRoutes);
 
@@ -45,3 +47,6 @@ export async function serve() {
   console.log(`rova serve listening on ${server.url}`);
   return server;
 }
+
+
+

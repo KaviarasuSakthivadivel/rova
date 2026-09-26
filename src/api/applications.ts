@@ -87,6 +87,7 @@ async function runGeneration(input: RunGenerationInput): Promise<void> {
       companyName: company.name,
       location: job.location,
       description: job.description,
+      userId: profile.userId,
     });
     if (!resumeResult.result) {
       throw new Error("resume/cover letter generation failed (refusal or an unparseable response)");
@@ -100,6 +101,7 @@ async function runGeneration(input: RunGenerationInput): Promise<void> {
         jobTitle: job.title,
         companyName: company.name,
         questions,
+        userId: profile.userId,
       });
       // A refusal/bad-shape answers response doesn't fail the whole
       // packet — the resume/cover letter already succeeded and are the
@@ -355,6 +357,7 @@ export const applicationsRoutes = new Hono<AuthEnv>()
         jobTitle: job.title,
         companyName: company?.name ?? "",
         questions: [{ label: question, description: null, required: false }],
+        userId: user.id,
       });
       answerText = result.result?.[0]?.answer ?? "";
     } catch (error) {

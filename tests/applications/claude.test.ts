@@ -36,6 +36,7 @@ const resumeInput = {
   companyName: "Acme",
   location: "Remote",
   description: "Own our Kafka-based data platform.",
+  userId: "test-user",
 };
 
 describe("generateResumeAndCoverLetter", () => {
@@ -88,6 +89,7 @@ const answersInput = {
     { label: "Are you located in SF/NYC or open to relocating?", description: null, required: true },
     { label: "What AI tools do you use today?", description: null, required: false },
   ],
+  userId: "test-user",
 };
 
 describe("generateAnswers", () => {

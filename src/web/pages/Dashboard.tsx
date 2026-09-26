@@ -5,6 +5,7 @@ import { JobCard } from "@/web/components/JobCard";
 import { JobDetail } from "@/web/components/JobDetail";
 import { JobDetailModal } from "@/web/components/JobDetailModal";
 import { JobListItem } from "@/web/components/JobListItem";
+import { LocationFilter } from "@/web/components/LocationFilter";
 import { ApiError, api } from "@/web/lib/api";
 
 const MODE_LABEL: Record<string, string> = {
@@ -146,12 +147,20 @@ export function Dashboard() {
             onChange={(e) => setQ(e.target.value)}
             className="min-w-[160px] flex-1 rounded-full bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-40"
           />
-          <input
-            type="text"
-            placeholder="Location"
+          <LocationFilter
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-32 rounded-full bg-panel-soft px-4 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+            onChange={setLocation}
+            onSelect={(loc) => {
+              setLocation(loc);
+              setSubmitted((prev) => ({ ...prev, location: loc }));
+            }}
+            scopeParams={{
+              q: submitted.q || undefined,
+              semantic: submitted.semantic,
+              postedWithinDays: submitted.postedWithinDays,
+              companyIds,
+              seniority,
+            }}
           />
           <select
             value={postedWithinDays ?? ""}

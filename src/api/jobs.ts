@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, asc, cosineDistance, desc, eq, gt, ilike, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, cosineDistance, desc, eq, gt, ilike, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "@/auth/middleware";
@@ -7,7 +7,15 @@ import { requireAuth } from "@/auth/middleware";
 import { env } from "@/config";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, jobs, userJobActions } from "@/db/schema";
-import { bucketCondition, buildSeniorityCondition, SENIORITY_BUCKETS, type SeniorityBucket } from "@/pipeline/jobFilters";
+import {
+  bucketCondition,
+  buildSeniorityCondition,
+  buildTextSearchCondition,
+  cosineSimilarity,
+  SENIORITY_BUCKETS,
+  textSearchRank,
+  type SeniorityBucket,
+} from "@/pipeline/jobFilters";
 import { rankSearchResultsForUser } from "@/pipeline/rank";
 
 const searchQuerySchema = z.object({
@@ -41,6 +49,28 @@ const searchQuerySchema = z.object({
 
 const actionSchema = z.object({
   action: z.enum(["saved", "dismissed", "applied"]),
+});
+
+// Scoped by every OTHER active filter (query text/semantic mode/posted-
+// within/company/seniority) plus its own `search` text — unlike
+// facetsQuerySchema, there's no separate `location` param here, since
+// location is the dimension this route is suggesting values for.
+const locationsQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  q: z.string().trim().optional(),
+  semantic: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
+  postedWithinDays: z.coerce.number().int().positive().optional(),
+  companyIds: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(",").filter(Boolean) : undefined)),
+  seniority: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(",").filter(Boolean) : undefined)),
 });
 
 // Same base-search params as searchQuerySchema, minus companyIds/seniority
@@ -97,7 +127,7 @@ export const jobsRoutes = new Hono<AuthEnv>()
       // misleading. Without a key, fall back to it anyway (better than
       // nothing) but label it honestly as similarity, not a match score.
       if (env.ANTHROPIC_API_KEY) {
-        const result = await rankSearchResultsForUser(user.id, { location, postedSince, companyIds, seniority });
+        const result = await rankSearchResultsForUser(user.id, { q, location, postedSince, companyIds, seniority });
         const page = result.ranked.slice(offset, offset + limit);
         const pageJobIds = page.map((r) => r.jobId);
 
@@ -143,6 +173,35 @@ export const jobsRoutes = new Hono<AuthEnv>()
       const similaritySeniorityCondition = buildSeniorityCondition(seniority);
       if (similaritySeniorityCondition) conditions.push(similaritySeniorityCondition);
 
+      // A typed query used to be silently dropped in semantic/"Match to
+      // me" mode entirely (only the profile embedding drove results) —
+      // confirmed live: searching "senior software developer" with an
+      // unrelated profile returned marketing roles, since the query text
+      // was never actually applied as a filter.
+      const similarityTextCondition = buildTextSearchCondition(q);
+
+      if (similarityTextCondition) {
+        // Ranked in JS, not via pgvector's `<=>` in SQL — see
+        // cosineSimilarity's own comment for why: Bun's SQL driver
+        // silently returns zero rows for a query combining a vector-typed
+        // ORDER BY with a websearch_to_tsquery(...) call (or even just a
+        // large parameter list) anywhere in it, confirmed via raw psql
+        // that Postgres itself has no problem with the same query.
+        const rows = await db
+          .select({ job: jobs, companyName: companies.name, companyDomain: companies.domain, action: userJobActions.action })
+          .from(jobs)
+          .innerJoin(companies, eq(jobs.companyId, companies.id))
+          .leftJoin(userJobActions, and(eq(userJobActions.jobId, jobs.id), eq(userJobActions.userId, user.id)))
+          .where(and(...conditions, similarityTextCondition));
+
+        const ranked = rows
+          .map((r) => ({ ...r, similarity: cosineSimilarity(profileEmbedding, r.job.embedding!) }))
+          .sort((a, b) => b.similarity - a.similarity);
+        const page = ranked.slice(offset, offset + limit + 1);
+
+        return c.json({ jobs: page.slice(0, limit), limit, offset, hasMore: page.length > limit, mode: "similarity" });
+      }
+
       const distance = cosineDistance(jobs.embedding, profileEmbedding);
 
       // Fetch one extra row past the page to know whether another page
@@ -167,10 +226,13 @@ export const jobsRoutes = new Hono<AuthEnv>()
       return c.json({ jobs: results.slice(0, limit), limit, offset, hasMore: results.length > limit, mode: "similarity" });
     }
 
-    // Baseline deterministic search — SQL ILIKE only.
+    // Baseline deterministic search — Postgres full-text (see
+    // pipeline/jobFilters.ts's buildTextSearchCondition for why this
+    // replaced a literal ILIKE phrase match).
     const conditions = [eq(jobs.status, "OPEN")];
-    if (q) {
-      conditions.push(or(ilike(jobs.title, `%${q}%`), ilike(jobs.description, `%${q}%`))!);
+    const keywordTextCondition = buildTextSearchCondition(q);
+    if (keywordTextCondition) {
+      conditions.push(keywordTextCondition);
     }
     if (location) {
       conditions.push(ilike(jobs.location, `%${location}%`));
@@ -197,7 +259,11 @@ export const jobsRoutes = new Hono<AuthEnv>()
       .innerJoin(companies, eq(jobs.companyId, companies.id))
       .leftJoin(userJobActions, and(eq(userJobActions.jobId, jobs.id), eq(userJobActions.userId, user.id)))
       .where(and(...conditions))
-      .orderBy(desc(jobs.firstSeenAt))
+      // With a query, rank by relevance (title matches over description-
+      // only matches — see search_vector's 'A'/'B' weights), newest as a
+      // tiebreaker; with no query, there's nothing to rank, so it's
+      // pure recency same as before.
+      .orderBy(...(q ? [desc(textSearchRank(q)), desc(jobs.firstSeenAt)] : [desc(jobs.firstSeenAt)]))
       .limit(limit + 1)
       .offset(offset);
 
@@ -257,9 +323,12 @@ export const jobsRoutes = new Hono<AuthEnv>()
       if (!profileRow?.embedding) {
         return c.json({ companies: [], seniority: zeroSeniority });
       }
-    } else if (q) {
-      searchConditions.push(or(ilike(jobs.title, `%${q}%`), ilike(jobs.description, `%${q}%`))!);
     }
+    // A typed query now applies in every mode (see the /"/" route's own
+    // comment) — including semantic, so the sidebar's counts stay
+    // consistent with what the main search actually returns.
+    const facetsTextCondition = buildTextSearchCondition(q);
+    if (facetsTextCondition) searchConditions.push(facetsTextCondition);
     if (location) searchConditions.push(ilike(jobs.location, `%${location}%`));
     if (postedSince) searchConditions.push(gt(jobs.firstSeenAt, postedSince));
     const searchFilter: SQL = searchConditions.length > 0 ? and(...searchConditions)! : sql`true`;
@@ -295,6 +364,46 @@ export const jobsRoutes = new Hono<AuthEnv>()
       .where(eq(jobs.status, "OPEN"));
 
     return c.json({ companies: companyFacets, seniority: seniorityRow ?? zeroSeniority });
+  })
+
+  // Powers the location filter's typeahead — real distinct location
+  // strings actually present in the data (as crawled, unnormalized: ATSes
+  // write these inconsistently, e.g. "San Francisco, CA" vs "San
+  // Francisco, California" vs "US-CA-San Francisco"), not a hand-
+  // maintained list that drifts from what jobs actually have. Scoped by
+  // every other active filter, so suggestions never point at a dead end.
+  .get("/locations", zValidator("query", locationsQuerySchema), async (c) => {
+    const { search, q, semantic, postedWithinDays, companyIds, seniority } = c.req.valid("query");
+    const user = c.get("user")!;
+    const postedSince = postedWithinDays ? new Date(Date.now() - postedWithinDays * 24 * 60 * 60 * 1000) : undefined;
+
+    const conditions: SQL[] = [eq(jobs.status, "OPEN"), isNotNull(jobs.location)];
+    if (semantic) {
+      conditions.push(isNotNull(jobs.embedding));
+      const [profileRow] = await db
+        .select({ embedding: candidateProfiles.embedding })
+        .from(candidateProfiles)
+        .where(eq(candidateProfiles.userId, user.id))
+        .limit(1);
+      if (!profileRow?.embedding) return c.json({ locations: [] });
+    }
+    const locationsTextCondition = buildTextSearchCondition(q);
+    if (locationsTextCondition) conditions.push(locationsTextCondition);
+    if (postedSince) conditions.push(gt(jobs.firstSeenAt, postedSince));
+    if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
+    const seniorityCondition = buildSeniorityCondition(seniority);
+    if (seniorityCondition) conditions.push(seniorityCondition);
+    if (search) conditions.push(ilike(jobs.location, `%${search}%`));
+
+    const rows = await db
+      .select({ location: jobs.location, count: sql<number>`count(*)::int` })
+      .from(jobs)
+      .where(and(...conditions))
+      .groupBy(jobs.location)
+      .orderBy(desc(sql`count(*)`))
+      .limit(15);
+
+    return c.json({ locations: rows.filter((r): r is { location: string; count: number } => r.location !== null) });
   })
 
   .get("/new-count", async (c) => {

@@ -152,3 +152,13 @@ export interface ApplicationPacketDetail {
   companyDomain: string | null;
   ats: string;
 }
+
+export interface CodexStatus {
+  // Whether the server is configured with PACKET_GENERATION_PROVIDER=codex —
+  // the frontend only shows the connect UI at all when this is true, same as
+  // claude/ollama having no UI toggle either (purely env-configured).
+  active: boolean;
+  connected: boolean;
+  connecting: boolean;
+  accountEmail: string | null;
+}

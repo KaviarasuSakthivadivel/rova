@@ -7,6 +7,9 @@ export interface GenerateResumeInput {
   companyName: string;
   location: string | null;
   description: string | null;
+  // Only read by src/applications/codex.ts, to look up that user's stored
+  // ChatGPT connection — claude.ts/ollama.ts ignore it.
+  userId: string;
 }
 
 export interface ResumeAndCoverLetter {
@@ -107,6 +110,8 @@ export interface GenerateAnswersInput {
   jobTitle: string;
   companyName: string;
   questions: ApplicationQuestion[];
+  // Only read by src/applications/codex.ts — see GenerateResumeInput.userId.
+  userId: string;
 }
 
 export interface GenerateAnswersResult {

@@ -1,7 +1,7 @@
 import { and, cosineDistance, eq, gt, ilike, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, digestDeliveries, jobRankings, jobs, userJobActions } from "@/db/schema";
-import { buildSeniorityCondition } from "@/pipeline/jobFilters";
+import { buildSeniorityCondition, buildTextSearchCondition, cosineSimilarity } from "@/pipeline/jobFilters";
 import { estimateCostUsd, type JobScore, rankJob, RankingNotConfiguredError } from "@/ranking/claude";
 
 const SHORTLIST_SIZE = 100; // SQL filter -> vector top-N, never wider than this
@@ -158,6 +158,7 @@ async function scoreCandidatesWithCache(
 }
 
 export interface SearchFilters {
+  q?: string;
   location?: string;
   postedSince?: Date;
   companyIds?: string[];
@@ -165,7 +166,7 @@ export interface SearchFilters {
 }
 
 async function vectorShortlist(profileEmbedding: number[], extraExclusions: Set<string>, filters: SearchFilters = {}): Promise<ScoreCandidate[]> {
-  const { location, postedSince, companyIds, seniority } = filters;
+  const { q, location, postedSince, companyIds, seniority } = filters;
   const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
   if (extraExclusions.size > 0) conditions.push(notInArray(jobs.id, [...extraExclusions]));
   if (location) conditions.push(ilike(jobs.location, `%${location}%`));
@@ -173,6 +174,39 @@ async function vectorShortlist(profileEmbedding: number[], extraExclusions: Set<
   if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
   const seniorityCondition = buildSeniorityCondition(seniority);
   if (seniorityCondition) conditions.push(seniorityCondition);
+
+  // A typed query narrows the shortlist BEFORE cosine-similarity ordering
+  // and LLM scoring, rather than being ignored — see api/jobs.ts's own
+  // comment on the same fix for "Match to me" mode.
+  const textCondition = buildTextSearchCondition(q);
+
+  if (textCondition) {
+    // Ranked in JS, not via pgvector's `<=>` in SQL — see
+    // cosineSimilarity's own comment in jobFilters.ts for why: Bun's SQL
+    // driver silently returns zero rows for a query combining a
+    // vector-typed ORDER BY with a websearch_to_tsquery(...) call
+    // anywhere in it.
+    const rows = await db
+      .select({
+        jobId: jobs.id,
+        title: jobs.title,
+        companyName: companies.name,
+        location: jobs.location,
+        jobUrl: jobs.jobUrl,
+        description: jobs.description,
+        contentHash: jobs.contentHash,
+        embedding: jobs.embedding,
+      })
+      .from(jobs)
+      .innerJoin(companies, eq(jobs.companyId, companies.id))
+      .where(and(...conditions, textCondition));
+
+    return rows
+      .map(({ embedding, ...candidate }) => ({ candidate, similarity: cosineSimilarity(profileEmbedding, embedding!) }))
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, SHORTLIST_SIZE)
+      .map((r) => r.candidate);
+  }
 
   const distance = cosineDistance(jobs.embedding, profileEmbedding);
   return db

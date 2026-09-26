@@ -1,10 +1,19 @@
-import { index, integer, numeric, pgTable, text, timestamp, unique, vector } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { customType, index, integer, numeric, pgTable, text, timestamp, unique, vector } from "drizzle-orm/pg-core";
 import { companies } from "./companies";
 
 // 768 dims — chosen so OpenAI (text-embedding-3-small, truncated via its
 // `dimensions` API param) and a local Ollama model (nomic-embed-text,
 // native 768) are interchangeable behind one schema. See src/embeddings/.
 export const EMBEDDING_DIMENSIONS = 768;
+
+// No tsvector column builder in drizzle-orm's pg-core (unlike `vector`,
+// which is purpose-built for pgvector) — a thin customType stands in.
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 export const jobs = pgTable(
   "jobs",
@@ -62,6 +71,19 @@ export const jobs = pgTable(
     // embedding (see ingest.ts).
     summary: text("summary"),
 
+    // Postgres-native full-text search, replacing a literal ILIKE phrase
+    // match on title/description — that required the exact substring
+    // "senior software developer" to appear verbatim, so it missed an
+    // otherwise-matching "Senior Software Engineer" post entirely (no
+    // partial/word-order/stemmed matching at all). GENERATED ALWAYS AS
+    // means Postgres keeps this in sync on every insert/update — no
+    // application-side maintenance. Title is weighted 'A' (matches there
+    // rank higher) over description's 'B'. STORED (not VIRTUAL) so the
+    // GIN index below can actually index it.
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') || setweight(to_tsvector('english', coalesce(description, '')), 'B')`,
+    ),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -70,9 +92,10 @@ export const jobs = pgTable(
     index("idx_jobs_company").on(table.companyId),
     index("idx_jobs_status").on(table.status),
     index("idx_jobs_first_seen").on(table.firstSeenAt),
-    // Full-text + vector indexes (GIN on tsvector, ivfflat on embedding)
-    // are added via a raw-SQL migration once Phase 5/6 land real data to
-    // index against — an empty vector index is just overhead (PLAN.md §4).
+    index("idx_jobs_search_vector").using("gin", table.searchVector),
+    // ivfflat on embedding is added via a raw-SQL migration once Phase 6
+    // lands real data to index against — an empty vector index is just
+    // overhead (PLAN.md §4).
   ],
 );
 

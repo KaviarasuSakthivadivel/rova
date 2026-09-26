@@ -16,7 +16,15 @@ const envSchema = z.object({
   // directly into real job applications, and quality matters a lot more
   // than for a summary. Switch explicitly to try local generation — see
   // src/applications/ollama.ts's structured-output caveat re: model size.
-  PACKET_GENERATION_PROVIDER: z.enum(["claude", "ollama"]).default("claude"),
+  PACKET_GENERATION_PROVIDER: z.enum(["claude", "ollama", "codex"]).default("claude"),
+  // Model id for the "codex" provider (ChatGPT subscription sign-in, see
+  // src/applications/codexAuth.ts). Confirmed live against a real ChatGPT
+  // Plus account: neither "gpt-5.2" nor any "-codex"-branded id is accepted
+  // ("not supported when using Codex with a ChatGPT account") — only the
+  // newer "gpt-5.6-{sol,terra,luna}" family is, and even within that,
+  // "sol" itself 400s while terra/luna succeed. Model access may vary by
+  // plan tier — override this if your account rejects the default too.
+  CHATGPT_MODEL: z.string().default("gpt-5.6-terra"),
   RESEND_API_KEY: z.string().optional(),
   DIGEST_FROM_EMAIL: z.string().optional(),
   ADMIN_EMAIL: z.string().optional(),

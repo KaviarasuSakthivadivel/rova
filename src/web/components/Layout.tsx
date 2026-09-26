@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { ThemeSwitcher } from "@/web/components/ThemeSwitcher";
 import { useAuth } from "@/web/lib/auth";
 
 function Icon({ path, className = "h-[18px] w-[18px]" }: { path: string; className?: string }) {
@@ -92,6 +93,8 @@ export function Layout({ children }: { children: ReactNode }) {
             </>
           )}
         </nav>
+
+        <ThemeSwitcher />
 
         <div className="flex items-center gap-2.5 border-t border-line px-5 py-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-panel-soft text-xs font-bold text-ink-muted">

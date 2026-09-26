@@ -41,6 +41,48 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
+/* Accent theme overrides — only --color-brand/-dark/-soft/-ink change per
+   theme; every other token (bg, ink, line, panel) is fixed regardless of
+   accent. "violet" is the default and lives on bare :root above, so it
+   has no block here. Applied via [data-accent] on <html> — see
+   src/web/lib/theme.ts. */
+[data-accent="cobalt"] {
+  --color-brand: #2563eb;
+  --color-brand-dark: #1d4ed8;
+  --color-brand-soft: #eff6ff;
+  --color-brand-ink: #1d4ed8;
+}
+[data-accent="emerald"] {
+  --color-brand: #059669;
+  --color-brand-dark: #047857;
+  --color-brand-soft: #ecfdf5;
+  --color-brand-ink: #047857;
+}
+[data-accent="amber"] {
+  --color-brand: #c2410c;
+  --color-brand-dark: #9a3412;
+  --color-brand-soft: #fff7ed;
+  --color-brand-ink: #9a3412;
+}
+[data-accent="rose"] {
+  --color-brand: #db2777;
+  --color-brand-dark: #be185d;
+  --color-brand-soft: #fdf2f8;
+  --color-brand-ink: #be185d;
+}
+[data-accent="indigo"] {
+  --color-brand: #4338ca;
+  --color-brand-dark: #3730a3;
+  --color-brand-soft: #eef2ff;
+  --color-brand-ink: #3730a3;
+}
+[data-accent="teal"] {
+  --color-brand: #0f766e;
+  --color-brand-dark: #115e59;
+  --color-brand-soft: #f0fdfa;
+  --color-brand-ink: #115e59;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-ink);

@@ -1,5 +1,6 @@
 import { env } from "@/config";
 import * as claude from "./claude";
+import * as codex from "./codex";
 import * as ollama from "./ollama";
 
 export { PacketGenerationNotConfiguredError } from "./errors";
@@ -12,7 +13,9 @@ export type {
 } from "./prompt";
 
 function provider() {
-  return env.PACKET_GENERATION_PROVIDER === "ollama" ? ollama : claude;
+  if (env.PACKET_GENERATION_PROVIDER === "ollama") return ollama;
+  if (env.PACKET_GENERATION_PROVIDER === "codex") return codex;
+  return claude;
 }
 
 export function generateResumeAndCoverLetter(...args: Parameters<typeof claude.generateResumeAndCoverLetter>) {

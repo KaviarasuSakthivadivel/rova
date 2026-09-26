@@ -7,7 +7,7 @@ export interface LogGenerationInput {
   /** Which call site — e.g. "rank-job", "summarize-job", "generate-resume",
    * "generate-answers", "discover-company". */
   name: string;
-  provider: "claude" | "ollama";
+  provider: "claude" | "ollama" | "codex";
   model: string;
   input: unknown;
   output: unknown;

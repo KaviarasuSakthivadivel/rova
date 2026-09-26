@@ -3,6 +3,7 @@ import type {
   ApplicationPacketDetail,
   ApplicationPacketSummary,
   ApplicationStage,
+  CodexStatus,
   Company,
   CrawlRun,
   DiscoveryCandidate,
@@ -97,6 +98,27 @@ export const api = {
 
   getJob: (id: string) => request<JobResult>(`/jobs/${id}`),
 
+  // Live location suggestions for the location filter's typeahead —
+  // real distinct strings from the data, scoped to whatever else is
+  // currently filtered (see GET /api/jobs/locations).
+  getLocationSuggestions: (params: {
+    search?: string;
+    q?: string;
+    semantic?: boolean;
+    postedWithinDays?: number;
+    companyIds?: string[];
+    seniority?: string[];
+  }) => {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.q) query.set("q", params.q);
+    if (params.semantic) query.set("semantic", "true");
+    if (params.postedWithinDays) query.set("postedWithinDays", String(params.postedWithinDays));
+    if (params.companyIds && params.companyIds.length > 0) query.set("companyIds", params.companyIds.join(","));
+    if (params.seniority && params.seniority.length > 0) query.set("seniority", params.seniority.join(","));
+    return request<{ locations: { location: string; count: number }[] }>(`/jobs/locations?${query.toString()}`);
+  },
+
   // Live counts for the filter sidebar, scoped to the same base search
   // (q/location/postedWithinDays/semantic) as searchJobs — NOT a static
   // per-company total, which goes stale the moment the search changes.
@@ -172,6 +194,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
+
+  getCodexStatus: () => request<CodexStatus>("/providers/codex/status"),
+
+  connectCodex: () => request<{ authorizeUrl: string }>("/providers/codex/connect", { method: "POST" }),
+
+  disconnectCodex: () => request<{ ok: true }>("/providers/codex/disconnect", { method: "POST" }),
 };
 
 export { ApiError };

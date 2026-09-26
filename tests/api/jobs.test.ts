@@ -136,6 +136,49 @@ describe("jobs routes", () => {
     expect(body.companies.some((c: { id: string; count: number }) => c.id === companyId && c.count >= 1)).toBe(true);
   });
 
+  it("suggests real location strings from the data for the location typeahead", async () => {
+    const res = await app.request(`/api/jobs/locations?search=${encodeURIComponent("Nowhere")}`, { headers: { Cookie: cookie } });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.locations.some((l: { location: string; count: number }) => l.location === "Nowhere, NA" && l.count >= 1)).toBe(true);
+  });
+
+  it("does not suggest locations that don't match the search text", async () => {
+    const res = await app.request(`/api/jobs/locations?search=${encodeURIComponent("Antarctica")}`, { headers: { Cookie: cookie } });
+    const body = await res.json();
+    expect(body.locations.some((l: { location: string }) => l.location === "Nowhere, NA")).toBe(false);
+  });
+
+  it("scopes location suggestions by the currently active company filter", async () => {
+    const [otherCompany] = await db
+      .insert(companies)
+      .values({ name: `Loc Co ${marker}`, slug: `loc-co-${marker}`, ats: "greenhouse", atsIdentifier: `loc-co-${marker}` })
+      .returning({ id: companies.id });
+    const [otherJob] = await db
+      .insert(jobs)
+      .values({
+        companyId: otherCompany!.id,
+        source: "greenhouse",
+        externalId: `ext-loc-${marker}`,
+        title: `Zzyzx Loc Engineer ${marker}`,
+        location: "Nowhere Else, NA",
+        jobUrl: "https://example.test/loc-job",
+        status: "OPEN",
+        contentHash: `hash-loc-${marker}`,
+      })
+      .returning({ id: jobs.id });
+
+    try {
+      const scoped = await app.request(`/api/jobs/locations?search=Nowhere&companyIds=${companyId}`, { headers: { Cookie: cookie } });
+      const scopedBody = await scoped.json();
+      expect(scopedBody.locations.some((l: { location: string }) => l.location === "Nowhere, NA")).toBe(true);
+      expect(scopedBody.locations.some((l: { location: string }) => l.location === "Nowhere Else, NA")).toBe(false);
+    } finally {
+      await db.delete(jobs).where(eq(jobs.id, otherJob!.id));
+      await db.delete(companies).where(eq(companies.id, otherCompany!.id));
+    }
+  });
+
   it("scopes facet counts to the current search, not a static per-company total", async () => {
     // Regression test: the filter sidebar's counts used to come from
     // GET /api/jobs/companies, a static "total open jobs at this

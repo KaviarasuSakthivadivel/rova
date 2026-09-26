@@ -4,3 +4,4 @@ export * from "./jobs";
 export * from "./profiles";
 export * from "./rankings";
 export * from "./applications";
+export * from "./providerConnections";
