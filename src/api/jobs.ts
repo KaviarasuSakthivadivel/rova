@@ -9,6 +9,7 @@ import { db } from "@/db/client";
 import { candidateProfiles, companies, jobs, userJobActions } from "@/db/schema";
 import {
   bucketCondition,
+  buildPreferredLocationsCondition,
   buildSeniorityCondition,
   buildTextSearchCondition,
   cosineSimilarity,
@@ -96,7 +97,7 @@ export const jobsRoutes = new Hono<AuthEnv>()
 
     if (semantic) {
       const [profileRow] = await db
-        .select({ embedding: candidateProfiles.embedding })
+        .select({ embedding: candidateProfiles.embedding, preferences: candidateProfiles.preferences })
         .from(candidateProfiles)
         .where(eq(candidateProfiles.userId, user.id))
         .limit(1);
@@ -114,6 +115,15 @@ export const jobsRoutes = new Hono<AuthEnv>()
         );
       }
       const profileEmbedding = profileRow.embedding;
+
+      // "Match to me" falls back to the profile's own stated preferences
+      // wherever this particular request didn't specify something more
+      // specific — no location typed into the search bar, but the profile
+      // has preferred locations saved; no seniority bucket checked, but
+      // the profile has a preferred seniority. An explicit request-level
+      // value (from the search bar/Filters panel) always wins.
+      const effectiveSeniority = seniority && seniority.length > 0 ? seniority : profileRow.preferences.seniority;
+      const preferredLocations = location ? undefined : profileRow.preferences.locations;
 
       // With Claude configured: rank the vector shortlist for a real,
       // calibrated fit score + "why" reasons (same pipeline the digest
@@ -167,10 +177,15 @@ export const jobsRoutes = new Hono<AuthEnv>()
       }
 
       const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
-      if (location) conditions.push(ilike(jobs.location, `%${location}%`));
+      if (location) {
+        conditions.push(ilike(jobs.location, `%${location}%`));
+      } else {
+        const preferredLocationsCondition = buildPreferredLocationsCondition(preferredLocations);
+        if (preferredLocationsCondition) conditions.push(preferredLocationsCondition);
+      }
       if (postedSince) conditions.push(gt(jobs.firstSeenAt, postedSince));
       if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
-      const similaritySeniorityCondition = buildSeniorityCondition(seniority);
+      const similaritySeniorityCondition = buildSeniorityCondition(effectiveSeniority);
       if (similaritySeniorityCondition) conditions.push(similaritySeniorityCondition);
 
       // A typed query used to be silently dropped in semantic/"Match to
@@ -310,10 +325,11 @@ export const jobsRoutes = new Hono<AuthEnv>()
     const zeroSeniority = Object.fromEntries(SENIORITY_BUCKETS.map((b) => [b, 0])) as Record<SeniorityBucket, number>;
 
     const searchConditions: SQL[] = [];
+    let preferredLocations: string[] | undefined;
     if (semantic) {
       searchConditions.push(isNotNull(jobs.embedding));
       const [profileRow] = await db
-        .select({ embedding: candidateProfiles.embedding })
+        .select({ embedding: candidateProfiles.embedding, preferences: candidateProfiles.preferences })
         .from(candidateProfiles)
         .where(eq(candidateProfiles.userId, user.id))
         .limit(1);
@@ -323,13 +339,22 @@ export const jobsRoutes = new Hono<AuthEnv>()
       if (!profileRow?.embedding) {
         return c.json({ companies: [], seniority: zeroSeniority });
       }
+      // Match the same "Match to me" preferred-locations default the main
+      // search route applies, so these counts stay consistent with what
+      // it actually returns.
+      if (!location) preferredLocations = profileRow.preferences.locations;
     }
     // A typed query now applies in every mode (see the /"/" route's own
     // comment) — including semantic, so the sidebar's counts stay
     // consistent with what the main search actually returns.
     const facetsTextCondition = buildTextSearchCondition(q);
     if (facetsTextCondition) searchConditions.push(facetsTextCondition);
-    if (location) searchConditions.push(ilike(jobs.location, `%${location}%`));
+    if (location) {
+      searchConditions.push(ilike(jobs.location, `%${location}%`));
+    } else {
+      const preferredLocationsCondition = buildPreferredLocationsCondition(preferredLocations);
+      if (preferredLocationsCondition) searchConditions.push(preferredLocationsCondition);
+    }
     if (postedSince) searchConditions.push(gt(jobs.firstSeenAt, postedSince));
     const searchFilter: SQL = searchConditions.length > 0 ? and(...searchConditions)! : sql`true`;
 
@@ -378,20 +403,27 @@ export const jobsRoutes = new Hono<AuthEnv>()
     const postedSince = postedWithinDays ? new Date(Date.now() - postedWithinDays * 24 * 60 * 60 * 1000) : undefined;
 
     const conditions: SQL[] = [eq(jobs.status, "OPEN"), isNotNull(jobs.location)];
+    let effectiveSeniority = seniority;
     if (semantic) {
       conditions.push(isNotNull(jobs.embedding));
       const [profileRow] = await db
-        .select({ embedding: candidateProfiles.embedding })
+        .select({ embedding: candidateProfiles.embedding, preferences: candidateProfiles.preferences })
         .from(candidateProfiles)
         .where(eq(candidateProfiles.userId, user.id))
         .limit(1);
       if (!profileRow?.embedding) return c.json({ locations: [] });
+      // Match the same "Match to me" preferred-seniority default the main
+      // search route applies — deliberately NOT doing the same for
+      // location here, since location is the very dimension this route
+      // suggests values for (defaulting it would hide the other places a
+      // user might want to broaden into).
+      if (!seniority || seniority.length === 0) effectiveSeniority = profileRow.preferences.seniority;
     }
     const locationsTextCondition = buildTextSearchCondition(q);
     if (locationsTextCondition) conditions.push(locationsTextCondition);
     if (postedSince) conditions.push(gt(jobs.firstSeenAt, postedSince));
     if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
-    const seniorityCondition = buildSeniorityCondition(seniority);
+    const seniorityCondition = buildSeniorityCondition(effectiveSeniority);
     if (seniorityCondition) conditions.push(seniorityCondition);
     if (search) conditions.push(ilike(jobs.location, `%${search}%`));
 

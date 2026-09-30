@@ -63,6 +63,11 @@ export function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "grid">("list");
 
+  // Only fetched for the "scoped to your preferred..." hint below — see
+  // GET /api/jobs's own comment on why "Match to me" falls back to these
+  // whenever the request itself doesn't specify a location/seniority.
+  const preferences = useQuery({ queryKey: ["profile"], queryFn: () => api.getProfile() }).data?.profile?.preferences;
+
   const searchKey = ["jobs", submitted.q, submitted.location, submitted.semantic, submitted.postedWithinDays, companyIds, seniority];
   const jobsQuery = useInfiniteQuery({
     queryKey: searchKey,
@@ -212,6 +217,14 @@ export function Dashboard() {
         {jobsQuery.data && (
           <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {mode ? (MODE_LABEL[mode] ?? mode) : ""} · {results.length} loaded{jobsQuery.hasNextPage ? "+" : ""}
+            {submitted.semantic &&
+              (() => {
+                const usingLocations = !submitted.location && !!preferences?.locations?.length;
+                const usingSeniority = seniority.length === 0 && !!preferences?.seniority?.length;
+                if (!usingLocations && !usingSeniority) return null;
+                const scoped = [usingLocations && "locations", usingSeniority && "seniority"].filter(Boolean).join(" & ");
+                return <span className="ml-1.5 font-normal normal-case tracking-normal text-ink-faint">· scoped to your preferred {scoped} (edit in Profile)</span>;
+              })()}
           </p>
         )}
         {!!newCountQuery.data?.count && (

@@ -1,4 +1,4 @@
-import { ilike, not, or, sql, type SQL } from "drizzle-orm";
+import { and, ilike, not, or, sql, type SQL } from "drizzle-orm";
 import { jobs } from "@/db/schema";
 
 // Heuristic, title-based — none of the ATS sources actually crawled today
@@ -45,6 +45,38 @@ export function buildSeniorityCondition(buckets: string[] | undefined): SQL | un
   const valid = buckets?.filter((b): b is SeniorityBucket => (SENIORITY_BUCKETS as readonly string[]).includes(b));
   if (!valid || valid.length === 0) return undefined;
   return or(...valid.map(bucketCondition))!;
+}
+
+// OR's an ilike across every preferred location — the profile's
+// preferences.locations can hold several ("San Francisco, United States,
+// Remote"), which the single-value location text filter can't represent
+// (that one's a literal substring match against one string). Used as a
+// default in "Match to me" search when the request has no explicit
+// `location` of its own — see GET /api/jobs.
+//
+// A bare "remote" entry gets special handling, not a plain OR'd ilike:
+// confirmed live that treating it as a normal substring match let
+// "Remote - India" through for a user whose other preferred locations
+// were all US-based — `ilike '%remote%'` matches ANY remote posting
+// regardless of region, discarding exactly the region signal the user's
+// other preferred locations already give. So "remote" only matches a
+// remote-labeled job that ALSO mentions one of the user's named
+// locations — or, if they listed no named locations at all (remote
+// only, no region preference), any remote-labeled job.
+export function buildPreferredLocationsCondition(locations: string[] | undefined): SQL | undefined {
+  const trimmed = locations?.map((l) => l.trim()).filter(Boolean) ?? [];
+  const named = trimmed.filter((l) => l.toLowerCase() !== "remote");
+  const wantsRemote = trimmed.some((l) => l.toLowerCase() === "remote");
+
+  const namedConditions = named.map((loc) => ilike(jobs.location, `%${loc}%`));
+  if (!wantsRemote) {
+    return namedConditions.length > 0 ? or(...namedConditions) : undefined;
+  }
+
+  const remoteCondition =
+    named.length > 0 ? and(ilike(jobs.location, "%remote%"), or(...namedConditions))! : ilike(jobs.location, "%remote%");
+
+  return namedConditions.length > 0 ? or(...namedConditions, remoteCondition)! : remoteCondition;
 }
 
 // Postgres full-text search against jobs.search_vector (a generated

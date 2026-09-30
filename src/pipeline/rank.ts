@@ -1,7 +1,7 @@
 import { and, cosineDistance, eq, gt, ilike, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { candidateProfiles, companies, digestDeliveries, jobRankings, jobs, userJobActions } from "@/db/schema";
-import { buildSeniorityCondition, buildTextSearchCondition, cosineSimilarity } from "@/pipeline/jobFilters";
+import { buildPreferredLocationsCondition, buildSeniorityCondition, buildTextSearchCondition, cosineSimilarity } from "@/pipeline/jobFilters";
 import { estimateCostUsd, type JobScore, rankJob, RankingNotConfiguredError } from "@/ranking/claude";
 
 const SHORTLIST_SIZE = 100; // SQL filter -> vector top-N, never wider than this
@@ -163,13 +163,24 @@ export interface SearchFilters {
   postedSince?: Date;
   companyIds?: string[];
   seniority?: string[];
+  // Fallback OR-matched locations, applied only when `location` above is
+  // absent — see buildPreferredLocationsCondition's own comment. Merged
+  // in from the profile's preferences by rankShortlistForUser/
+  // rankSearchResultsForUser below, not meant to be set directly by a
+  // caller that already has an explicit `location`.
+  preferredLocations?: string[];
 }
 
 async function vectorShortlist(profileEmbedding: number[], extraExclusions: Set<string>, filters: SearchFilters = {}): Promise<ScoreCandidate[]> {
-  const { q, location, postedSince, companyIds, seniority } = filters;
+  const { q, location, postedSince, companyIds, seniority, preferredLocations } = filters;
   const conditions = [eq(jobs.status, "OPEN"), isNotNull(jobs.embedding)];
   if (extraExclusions.size > 0) conditions.push(notInArray(jobs.id, [...extraExclusions]));
-  if (location) conditions.push(ilike(jobs.location, `%${location}%`));
+  if (location) {
+    conditions.push(ilike(jobs.location, `%${location}%`));
+  } else {
+    const preferredLocationsCondition = buildPreferredLocationsCondition(preferredLocations);
+    if (preferredLocationsCondition) conditions.push(preferredLocationsCondition);
+  }
   if (postedSince) conditions.push(gt(jobs.firstSeenAt, postedSince));
   if (companyIds && companyIds.length > 0) conditions.push(inArray(jobs.companyId, companyIds));
   const seniorityCondition = buildSeniorityCondition(seniority);
@@ -263,7 +274,12 @@ export async function rankShortlistForUser(userId: string): Promise<RankShortlis
     .where(and(eq(digestDeliveries.userId, userId), gt(digestDeliveries.sentAt, new Date(Date.now() - DEDUP_WINDOW_MS))));
   const excluded = new Set<string>([...dismissedRows.map((r) => r.jobId), ...recentDeliveries.flatMap((d) => d.jobIds)]);
 
-  const shortlist = await vectorShortlist(profile.embedding, excluded);
+  // The digest has no request-level filters of its own to merge against —
+  // it always runs against the profile's own stated preferences.
+  const shortlist = await vectorShortlist(profile.embedding, excluded, {
+    seniority: profile.preferences.seniority,
+    preferredLocations: profile.preferences.locations,
+  });
   if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
 
   const result = await scoreCandidatesWithCache(profile.id, profile.profileText, shortlist, MAX_LLM_CALLS_PER_DIGEST_RUN);
@@ -295,7 +311,19 @@ export async function rankSearchResultsForUser(userId: string, filters: SearchFi
   if (!profile) return empty("no profile");
   if (!profile.embedding) return empty("profile has no embedding yet");
 
-  const shortlist = await vectorShortlist(profile.embedding, new Set(), filters);
+  // Falls back to the profile's own stated preferences wherever the
+  // caller's request didn't specify something more specific — e.g. no
+  // location typed into the search bar this time, but the profile has
+  // preferred locations saved; no seniority bucket checked, but the
+  // profile has a preferred seniority. An explicit request-level value
+  // always wins over the profile default.
+  const effectiveFilters: SearchFilters = {
+    ...filters,
+    seniority: filters.seniority && filters.seniority.length > 0 ? filters.seniority : profile.preferences.seniority,
+    preferredLocations: filters.location ? undefined : profile.preferences.locations,
+  };
+
+  const shortlist = await vectorShortlist(profile.embedding, new Set(), effectiveFilters);
   if (shortlist.length === 0) return empty("no jobs in the vector shortlist");
 
   const result = await scoreCandidatesWithCache(profile.id, profile.profileText, shortlist, MAX_LLM_CALLS_PER_SEARCH);

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/web/lib/api";
+import { SENIORITY_BUCKETS, SENIORITY_BUCKET_LABELS } from "@/web/lib/seniority";
 
 const fieldLabel = "text-xs font-semibold text-ink-muted";
 const fieldInput = "mt-1 w-full rounded-xl bg-panel-soft px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand";
@@ -21,6 +22,7 @@ export function Profile() {
   const [resumeIsPdf, setResumeIsPdf] = useState(false);
   const [locations, setLocations] = useState("");
   const [remoteOk, setRemoteOk] = useState(true);
+  const [preferredSeniority, setPreferredSeniority] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "saved" | "saved-no-embedding" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,7 @@ export function Profile() {
     setResumeText(profile.resumeText ?? "");
     setLocations((profile.preferences.locations ?? []).join(", "));
     setRemoteOk(profile.preferences.remoteOk ?? true);
+    setPreferredSeniority(profile.preferences.seniority ?? []);
   }, [profileQuery.data]);
 
   // Preview is derived from the in-memory File, not stored server-side —
@@ -65,6 +68,7 @@ export function Profile() {
             .map((l) => l.trim())
             .filter(Boolean),
           remoteOk,
+          seniority: preferredSeniority,
         },
       }),
     onSuccess: (data) => {
@@ -190,6 +194,31 @@ export function Profile() {
               <input type="checkbox" checked={remoteOk} onChange={(e) => setRemoteOk(e.target.checked)} className="h-4 w-4 accent-brand" />
               Open to fully remote roles
             </label>
+
+            <p className={`mt-4 ${fieldLabel}`}>Preferred seniority</p>
+            <p className="mt-0.5 text-xs text-ink-faint">
+              Used as the default for "Match to me" search when you haven't picked one in Filters. Leave all unchecked to match any level.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {SENIORITY_BUCKETS.map((bucket) => {
+                const checked = preferredSeniority.includes(bucket);
+                return (
+                  <button
+                    key={bucket}
+                    type="button"
+                    onClick={() =>
+                      setPreferredSeniority((prev) => (checked ? prev.filter((b) => b !== bucket) : [...prev, bucket]))
+                    }
+                    aria-pressed={checked}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      checked ? "border-brand/50 bg-brand-soft text-brand-ink" : "border-line text-ink-muted hover:bg-panel-soft hover:text-ink"
+                    }`}
+                  >
+                    {SENIORITY_BUCKET_LABELS[bucket]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {codexStatusQuery.data?.active && (

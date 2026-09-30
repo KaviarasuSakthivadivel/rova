@@ -306,4 +306,222 @@ describe("jobs routes", () => {
       return user.id;
     }
   });
+
+  describe("Match to me: profile-preference defaults", () => {
+    // Regression test: "Match to me" mode used to ignore
+    // preferences.locations/seniority entirely — only whatever was typed
+    // into the search bar/Filters panel for that one request applied, so
+    // a saved "Preferred locations"/preferred-seniority went completely
+    // unused. All jobs here share one identical fake embedding, so
+    // similarity ranking never favors one over another — only the
+    // location/seniority filter should determine which appear.
+    const marker4 = crypto.randomUUID().slice(0, 8);
+    const fakeEmbedding = Array.from({ length: 768 }, () => 0.1);
+    let prefApp: ReturnType<typeof testApp>;
+    let prefEmail: string;
+    let prefCookie: string;
+    let prefCompanyId: string;
+    let bangaloreJobId: string;
+    let sfJobId: string;
+    let staffJobId: string;
+    let seniorJobId: string;
+
+    beforeAll(async () => {
+      prefApp = testApp();
+      prefEmail = uniqueEmail("jobs-prefs");
+      const signupRes = await prefApp.request("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: prefEmail, password: "correct-horse-battery" }),
+      });
+      prefCookie = extractCookie(signupRes);
+      const meRes = await prefApp.request("/api/auth/me", { headers: { Cookie: prefCookie } });
+      const { user } = await meRes.json();
+
+      await db.insert(candidateProfiles).values({
+        userId: user.id,
+        profileText: "test profile for preference-default matching",
+        embedding: fakeEmbedding,
+        preferences: { locations: ["San Francisco"], seniority: ["senior"] },
+      });
+
+      const [company] = await db
+        .insert(companies)
+        .values({ name: `Pref Test Co ${marker4}`, slug: `pref-test-co-${marker4}`, ats: "greenhouse", atsIdentifier: `pref-test-co-${marker4}` })
+        .returning({ id: companies.id });
+      prefCompanyId = company!.id;
+
+      const [bangalore, sf, staff, senior] = await db
+        .insert(jobs)
+        .values([
+          {
+            companyId: prefCompanyId,
+            source: "greenhouse",
+            externalId: `ext-blr-${marker4}`,
+            title: `Zzyzx Senior Engineer Bangalore ${marker4}`,
+            location: "Bengaluru, India",
+            jobUrl: "https://example.test/blr",
+            status: "OPEN",
+            contentHash: `hash-blr-${marker4}`,
+            embedding: fakeEmbedding,
+          },
+          {
+            companyId: prefCompanyId,
+            source: "greenhouse",
+            externalId: `ext-sf-${marker4}`,
+            title: `Zzyzx Senior Engineer SF ${marker4}`,
+            location: "San Francisco, CA",
+            jobUrl: "https://example.test/sf",
+            status: "OPEN",
+            contentHash: `hash-sf-${marker4}`,
+            embedding: fakeEmbedding,
+          },
+          {
+            companyId: prefCompanyId,
+            source: "greenhouse",
+            externalId: `ext-staff-${marker4}`,
+            title: `Zzyzx Staff Engineer SF ${marker4}`,
+            location: "San Francisco, CA",
+            jobUrl: "https://example.test/staff",
+            status: "OPEN",
+            contentHash: `hash-staff-${marker4}`,
+            embedding: fakeEmbedding,
+          },
+          {
+            companyId: prefCompanyId,
+            source: "greenhouse",
+            externalId: `ext-senior-${marker4}`,
+            title: `Zzyzx Senior Engineer Two SF ${marker4}`,
+            location: "San Francisco, CA",
+            jobUrl: "https://example.test/senior2",
+            status: "OPEN",
+            contentHash: `hash-senior-${marker4}`,
+            embedding: fakeEmbedding,
+          },
+        ])
+        .returning({ id: jobs.id });
+      bangaloreJobId = bangalore!.id;
+      sfJobId = sf!.id;
+      staffJobId = staff!.id;
+      seniorJobId = senior!.id;
+    });
+
+    afterAll(async () => {
+      await db.delete(jobs).where(eq(jobs.companyId, prefCompanyId));
+      await db.delete(companies).where(eq(companies.id, prefCompanyId));
+      await deleteTestUser(prefEmail);
+    });
+
+    it("scopes semantic search to preferred locations/seniority by default", async () => {
+      const res = await prefApp.request("/api/jobs?semantic=true", { headers: { Cookie: prefCookie } });
+      expect(res.status).toBe(200);
+      const ids = (await res.json()).jobs.map((j: { job: { id: string } }) => j.job.id);
+
+      // Bangalore is excluded (not a preferred location) even though its
+      // embedding is identical to every SF job's.
+      expect(ids).not.toContain(bangaloreJobId);
+      // The Staff-titled job is excluded (preferred seniority is "senior"
+      // only) even though it's in a preferred location.
+      expect(ids).not.toContain(staffJobId);
+      // Both Senior-titled SF jobs match both preferences.
+      expect(ids).toContain(sfJobId);
+      expect(ids).toContain(seniorJobId);
+    });
+
+    it("lets an explicit location/seniority in the request override the profile default", async () => {
+      const res = await prefApp.request("/api/jobs?semantic=true&location=Bengaluru&seniority=senior,staff", { headers: { Cookie: prefCookie } });
+      const ids = (await res.json()).jobs.map((j: { job: { id: string } }) => j.job.id);
+
+      expect(ids).toContain(bangaloreJobId);
+      expect(ids).not.toContain(sfJobId);
+      expect(ids).not.toContain(staffJobId); // staff title, but not in Bengaluru
+    });
+  });
+
+  describe("Match to me: a bare 'Remote' preferred location is region-scoped", () => {
+    // Regression test — confirmed live: a user with preferences.locations
+    // = ["United States", "San Francisco", "Remote", "USA"] was matched to
+    // a job located "Remote - India", because the original fix treated
+    // "Remote" as a plain ilike '%remote%' substring, matching ANY remote
+    // posting regardless of region and discarding the region signal the
+    // user's other preferred locations already gave.
+    const marker5 = crypto.randomUUID().slice(0, 8);
+    const fakeEmbedding = Array.from({ length: 768 }, () => 0.1);
+    let remoteApp: ReturnType<typeof testApp>;
+    let remoteEmail: string;
+    let remoteCookie: string;
+    let remoteCompanyId: string;
+    let remoteIndiaJobId: string;
+    let remoteUsJobId: string;
+
+    beforeAll(async () => {
+      remoteApp = testApp();
+      remoteEmail = uniqueEmail("jobs-prefs-remote");
+      const signupRes = await remoteApp.request("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: remoteEmail, password: "correct-horse-battery" }),
+      });
+      remoteCookie = extractCookie(signupRes);
+      const meRes = await remoteApp.request("/api/auth/me", { headers: { Cookie: remoteCookie } });
+      const { user } = await meRes.json();
+
+      await db.insert(candidateProfiles).values({
+        userId: user.id,
+        profileText: "test profile for the remote-token regression",
+        embedding: fakeEmbedding,
+        preferences: { locations: ["United States", "San Francisco", "Remote", "USA"] },
+      });
+
+      const [company] = await db
+        .insert(companies)
+        .values({ name: `Remote Pref Co ${marker5}`, slug: `remote-pref-co-${marker5}`, ats: "greenhouse", atsIdentifier: `remote-pref-co-${marker5}` })
+        .returning({ id: companies.id });
+      remoteCompanyId = company!.id;
+
+      const [india, us] = await db
+        .insert(jobs)
+        .values([
+          {
+            companyId: remoteCompanyId,
+            source: "greenhouse",
+            externalId: `ext-remote-in-${marker5}`,
+            title: `Zzyzx Remote Engineer India ${marker5}`,
+            location: "Remote - India",
+            jobUrl: "https://example.test/remote-in",
+            status: "OPEN",
+            contentHash: `hash-remote-in-${marker5}`,
+            embedding: fakeEmbedding,
+          },
+          {
+            companyId: remoteCompanyId,
+            source: "greenhouse",
+            externalId: `ext-remote-us-${marker5}`,
+            title: `Zzyzx Remote Engineer US ${marker5}`,
+            location: "Remote - United States",
+            jobUrl: "https://example.test/remote-us",
+            status: "OPEN",
+            contentHash: `hash-remote-us-${marker5}`,
+            embedding: fakeEmbedding,
+          },
+        ])
+        .returning({ id: jobs.id });
+      remoteIndiaJobId = india!.id;
+      remoteUsJobId = us!.id;
+    });
+
+    afterAll(async () => {
+      await db.delete(jobs).where(eq(jobs.companyId, remoteCompanyId));
+      await db.delete(companies).where(eq(companies.id, remoteCompanyId));
+      await deleteTestUser(remoteEmail);
+    });
+
+    it("excludes a remote job in an unrelated region, includes one tied to a preferred region", async () => {
+      const res = await remoteApp.request("/api/jobs?semantic=true", { headers: { Cookie: remoteCookie } });
+      const ids = (await res.json()).jobs.map((j: { job: { id: string } }) => j.job.id);
+
+      expect(ids).not.toContain(remoteIndiaJobId);
+      expect(ids).toContain(remoteUsJobId);
+    });
+  });
 });
