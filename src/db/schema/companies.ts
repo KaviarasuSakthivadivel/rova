@@ -11,7 +11,7 @@ export const companies = pgTable(
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
 
-    ats: text("ats").notNull(), // "greenhouse" | "lever" | "ashby"
+    ats: text("ats").notNull(), // "greenhouse" | "lever" | "ashby" | "smartrecruiters"
     atsIdentifier: text("ats_identifier").notNull(),
 
     careersUrl: text("careers_url"),

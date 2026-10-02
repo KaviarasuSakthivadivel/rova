@@ -10,7 +10,7 @@ export class DiscoveryNotConfiguredError extends Error {
 
 export interface DiscoveryResult {
   careersUrl: string | null;
-  ats: "greenhouse" | "lever" | "ashby" | "other" | "unknown";
+  ats: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "other" | "unknown";
   atsIdentifier: string | null;
   confidence: number; // 0-1
   notes: string;
@@ -21,13 +21,14 @@ Use web search to confirm — do not guess from memory alone. Common ATS URL pat
 - Greenhouse: boards.greenhouse.io/{token} (sometimes proxied through a custom domain)
 - Lever: jobs.lever.co/{site}
 - Ashby: jobs.ashbyhq.com/{name}
+- SmartRecruiters: jobs.smartrecruiters.com/{companyIdentifier} or jobs.smartrecruiters.com/oneclick-ui/company/{companyIdentifier}/...
 If you can't confidently identify the ATS after searching, say ats: "unknown" rather than guessing —
 a wrong high-confidence guess is worse than an honest "unknown" here, since these go into a queue
 a human reviews before anything is trusted.
 
 Respond with ONLY a single JSON object on your final line, no other text, no markdown fences, matching
 exactly this shape:
-{"careersUrl": string or null, "ats": "greenhouse" | "lever" | "ashby" | "other" | "unknown", "atsIdentifier": string or null, "confidence": number between 0 and 1, "notes": string}`;
+{"careersUrl": string or null, "ats": "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "other" | "unknown", "atsIdentifier": string or null, "confidence": number between 0 and 1, "notes": string}`;
 
 // Not cached as a module singleton — the SDK resolves `fetch` once at
 // construction time, so a cached client would keep using whichever
@@ -44,7 +45,7 @@ function isDiscoveryResult(value: unknown): value is DiscoveryResult {
   return (
     (typeof v.careersUrl === "string" || v.careersUrl === null) &&
     typeof v.ats === "string" &&
-    ["greenhouse", "lever", "ashby", "other", "unknown"].includes(v.ats) &&
+    ["greenhouse", "lever", "ashby", "smartrecruiters", "other", "unknown"].includes(v.ats) &&
     (typeof v.atsIdentifier === "string" || v.atsIdentifier === null) &&
     typeof v.confidence === "number" &&
     typeof v.notes === "string"

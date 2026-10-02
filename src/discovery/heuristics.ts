@@ -1,4 +1,4 @@
-export type SupportedAts = "greenhouse" | "lever" | "ashby";
+export type SupportedAts = "greenhouse" | "lever" | "ashby" | "smartrecruiters";
 
 export interface HeuristicMatch {
   ats: SupportedAts;
@@ -33,6 +33,11 @@ const CANDIDATE_PATTERNS: {
     careersUrlFor: (slug) => `https://jobs.ashbyhq.com/${slug}`,
     verifyUrlFor: (slug) => `https://api.ashbyhq.com/posting-api/job-board/${slug}`,
   },
+  {
+    ats: "smartrecruiters",
+    careersUrlFor: (slug) => `https://jobs.smartrecruiters.com/${slug}`,
+    verifyUrlFor: (slug) => `https://api.smartrecruiters.com/v1/companies/${slug}/postings?limit=1`,
+  },
 ];
 
 function slugVariants(companyName: string): string[] {
@@ -48,7 +53,16 @@ function slugVariants(companyName: string): string[] {
 async function apiConfirms(url: string, timeoutMs = 5000): Promise<boolean> {
   try {
     const res = await fetch(url, { method: "GET", signal: AbortSignal.timeout(timeoutMs) });
-    return res.ok;
+    if (!res.ok) return false;
+
+    // SmartRecruiters returns HTTP 200 with an empty `content` array for an
+    // unknown company, so status alone is not enough to verify its identifier.
+    if (url.includes("api.smartrecruiters.com")) {
+      const body = (await res.json()) as { content?: unknown[] };
+      return Array.isArray(body.content) && body.content.length > 0;
+    }
+
+    return true;
   } catch {
     return false;
   }

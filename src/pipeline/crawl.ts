@@ -8,6 +8,7 @@ import { AshbySource } from "@/sources/ashby";
 import type { JobSource } from "@/sources/base";
 import { GreenhouseSource } from "@/sources/greenhouse";
 import { LeverSource } from "@/sources/lever";
+import { SmartRecruitersSource } from "@/sources/smartrecruiters";
 import { upsertJob } from "./ingest";
 
 type Company = typeof companies.$inferSelect;
@@ -64,6 +65,8 @@ function sourceFor(company: Company): JobSource {
       return new LeverSource(company.atsIdentifier);
     case "ashby":
       return new AshbySource(company.atsIdentifier);
+    case "smartrecruiters":
+      return new SmartRecruitersSource(company.atsIdentifier);
     default:
       throw new Error(`Unsupported ATS "${company.ats}" for company "${company.name}"`);
   }

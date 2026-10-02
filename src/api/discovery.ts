@@ -23,6 +23,8 @@ function boardUrlFor(ats: string, identifier: string): string | undefined {
       return `https://jobs.lever.co/${identifier}`;
     case "ashby":
       return `https://jobs.ashbyhq.com/${identifier}`;
+    case "smartrecruiters":
+      return `https://jobs.smartrecruiters.com/${identifier}`;
     default:
       return undefined;
   }
@@ -64,7 +66,7 @@ export const discoveryRoutes = new Hono<AuthEnv>()
 
     const ats = candidate.guessedAts;
     const identifier = candidate.guessedIdentifier;
-    if (!ats || !identifier || !["greenhouse", "lever", "ashby"].includes(ats)) {
+    if (!ats || !identifier || !["greenhouse", "lever", "ashby", "smartrecruiters"].includes(ats)) {
       return c.json({ error: "candidate has no usable ATS guess to promote" }, 400);
     }
 

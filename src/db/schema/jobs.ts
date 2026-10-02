@@ -23,7 +23,7 @@ export const jobs = pgTable(
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
 
-    source: text("source").notNull(), // "greenhouse" | "lever" | "ashby"
+    source: text("source").notNull(), // "greenhouse" | "lever" | "ashby" | "smartrecruiters"
     externalId: text("external_id").notNull(),
 
     title: text("title").notNull(),
